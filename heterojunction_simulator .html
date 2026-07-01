@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Heterojunction Simulator</title>
+    <style>
+        :root {
+            --bg-color: #f0f4f8;
+            --panel-bg: #ffffff;
+            --text-main: #1e293b;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --ec-color: #ef4444; 
+            --ev-color: #3b82f6; 
+            --ef-color: #10b981; 
+            --border: #cbd5e1;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            background-color: var(--panel-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 30px;
+            max-width: 950px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        h2 {
+            margin-top: 0;
+            text-align: center;
+            color: #0f172a;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .controls-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 20px;
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .control-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: #334155;
+        }
+
+        select {
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #94a3b8;
+            font-size: 1rem;
+            background-color: white;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .svg-container {
+            width: 100%;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.02);
+        }
+
+        svg {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .band-path {
+            fill: none;
+            stroke-width: 3.5;
+            /* Removed transition: d to fix cross-browser rendering bugs making paths invisible */
+        }
+        
+        .band-line {
+            stroke-width: 3.5;
+            transition: y1 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), y2 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .ec { stroke: var(--ec-color); }
+        .ev { stroke: var(--ev-color); }
+        .ef { 
+            stroke: var(--ef-color); 
+            stroke-width: 2; 
+            stroke-dasharray: 8 4; 
+        }
+
+        .interface-line {
+            stroke: #94a3b8;
+            stroke-width: 1.5;
+            stroke-dasharray: 6 4;
+        }
+
+        .label {
+            font-size: 16px;
+            font-weight: 600;
+            fill: var(--text-main);
+            user-select: none;
+        }
+        
+        .math {
+            font-family: "Times New Roman", Times, serif;
+            font-style: italic;
+        }
+
+        .analysis-box {
+            margin-top: 20px;
+            padding: 15px 20px;
+            background-color: #e0f2fe;
+            border-left: 4px solid var(--primary);
+            border-radius: 4px;
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        .analysis-title {
+            font-weight: bold;
+            color: #0369a1;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin-top: 15px;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+        
+        .legend-item { display: flex; align-items: center; gap: 8px; }
+        .legend-color { width: 24px; height: 4px; border-radius: 2px;}
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Abrupt Al₀.₃Ga₀.₇As — GaAs Heterojunction Simulator</h2>
+        
+        <div class="controls-container">
+            <div class="control-group">
+                <label for="left-doping">Al₀.₃Ga₀.₇As Doping (Wide Bandgap)</label>
+                <select id="left-doping" onchange="updateDiagram()">
+                    <option value="n++">n++ (Degenerate N-type)</option>
+                    <option value="n+" selected>n+ (Heavy N-type)</option>
+                    <option value="n">n (Moderate N-type)</option>
+                    <option value="i">i (Intrinsic)</option>
+                    <option value="p">p (Moderate P-type)</option>
+                    <option value="p+">p+ (Heavy P-type)</option>
+                    <option value="p++">p++ (Degenerate P-type)</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="right-doping">GaAs Doping (Narrow Bandgap)</label>
+                <select id="right-doping" onchange="updateDiagram()">
+                    <option value="n++">n++ (Degenerate N-type)</option>
+                    <option value="n+">n+ (Heavy N-type)</option>
+                    <option value="n">n (Moderate N-type)</option>
+                    <option value="i">i (Intrinsic)</option>
+                    <option value="p" selected>p (Moderate P-type)</option>
+                    <option value="p+">p+ (Heavy P-type)</option>
+                    <option value="p++">p++ (Degenerate P-type)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="svg-container">
+            <svg viewBox="0 0 800 600" id="diagram">
+                <!-- Interface Line -->
+                <line x1="400" y1="30" x2="400" y2="570" class="interface-line" />
+                
+                <!-- Material Labels -->
+                <text x="200" y="40" class="label" text-anchor="middle">Al₀.₃Ga₀.₇As (Eg = 1.85 eV)</text>
+                <text x="600" y="40" class="label" text-anchor="middle">GaAs (Eg = 1.42 eV)</text>
+
+                <!-- Fermi Level -->
+                <line x1="0" y1="300" x2="800" y2="300" class="ef" />
+                <text x="760" y="290" class="label math" style="fill: var(--ef-color);">E_F</text>
+
+                <!-- Band Paths -->
+                <path id="left-ec" class="band-path ec" />
+                <path id="right-ec" class="band-path ec" />
+                <path id="left-ev" class="band-path ev" />
+                <path id="right-ev" class="band-path ev" />
+
+                <!-- Discontinuity Vertical Lines -->
+                <line id="delta-ec-line" x1="400" x2="400" class="band-line ec" />
+                <line id="delta-ev-line" x1="400" x2="400" class="band-line ev" />
+
+                <!-- Discontinuity Labels -->
+                <text id="delta-ec-text" x="410" class="label math" style="font-size: 14px; fill: var(--ec-color);">ΔE_c</text>
+                <text id="delta-ev-text" x="410" class="label math" style="font-size: 14px; fill: var(--ev-color);">ΔE_v</text>
+
+                <!-- Band Labels -->
+                <text x="20" id="label-ec-l" class="label math" style="fill: var(--ec-color);">E_c</text>
+                <text x="20" id="label-ev-l" class="label math" style="fill: var(--ev-color);">E_v</text>
+                <text x="760" id="label-ec-r" class="label math" style="fill: var(--ec-color);">E_c</text>
+                <text x="760" id="label-ev-r" class="label math" style="fill: var(--ev-color);">E_v</text>
+                
+                <!-- Author Signature -->
+                <text x="780" y="580" class="label" style="font-size: 14px; fill: #64748b; text-anchor: end; font-weight: normal;">Mahmudul Hasan(2202156)</text>
+            </svg>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item"><div class="legend-color" style="background: var(--ec-color);"></div> Conduction Band (E<sub>c</sub>)</div>
+            <div class="legend-item"><div class="legend-color" style="background: var(--ev-color);"></div> Valence Band (E<sub>v</sub>)</div>
+            <div class="legend-item"><div class="legend-color" style="background: var(--ef-color); border-bottom: 2px dashed var(--ef-color); height:0; width:24px; border-radius:0;"></div> Fermi Level (E<sub>F</sub>)</div>
+        </div>
+
+        <div class="analysis-box">
+            <span class="analysis-title" id="junction-type">Junction Type:</span>
+            <span id="analysis-text">Select doping parameters to view junction behavior.</span>
+        </div>
+
+    </div>
+
+    <script>
+        /**
+         * Physics Engine for Heterojunction Visualization
+         * Scale: 1 eV = 120 pixels
+         * Fermi Level (E_F) is fixed at Y = 300
+         */
+        const SCALE = 120; 
+        const EF_Y = 300;
+
+        // Bandgaps in eV
+        const Eg_L_eV = 1.85; 
+        const Eg_R_eV = 1.42;
+
+        // Offsets in eV (ΔEc = 2/3 ΔEg)
+        const dEg_eV = Eg_L_eV - Eg_R_eV;
+        const dEc_eV = (2/3) * dEg_eV; 
+        const dEv_eV = (1/3) * dEg_eV;
+
+        // Convert to Pixels
+        const Eg_L = Eg_L_eV * SCALE;
+        const Eg_R = Eg_R_eV * SCALE;
+        const dEc = dEc_eV * SCALE;
+        const dEv = dEv_eV * SCALE;
+
+        // Doping Profile Definitions
+        const dopingProfiles = {
+            "n++": { type: "n", offset: -0.1, weight: 1000 },
+            "n+":  { type: "n", offset: 0.0,  weight: 100 },
+            "n":   { type: "n", offset: 0.15, weight: 10 },
+            "i":   { type: "i", offset: "mid",weight: 1 },
+            "p":   { type: "p", offset: 0.15, weight: 10 },
+            "p+":  { type: "p", offset: 0.0,  weight: 100 },
+            "p++": { type: "p", offset: -0.1, weight: 1000 }
+        };
+
+        function getBulkLevels(material, isLeft) {
+            const profile = dopingProfiles[material];
+            const Eg = isLeft ? Eg_L : Eg_R;
+            let Ec_Y, Ev_Y;
+
+            if (profile.type === "i") {
+                Ec_Y = EF_Y - (Eg / 2);
+                Ev_Y = EF_Y + (Eg / 2);
+            } else if (profile.type === "n") {
+                Ec_Y = EF_Y - (profile.offset * SCALE);
+                Ev_Y = Ec_Y + Eg;
+            } else if (profile.type === "p") {
+                Ev_Y = EF_Y + (profile.offset * SCALE);
+                Ec_Y = Ev_Y - Eg;
+            }
+
+            return { Ec_Y, Ev_Y, weight: profile.weight, type: profile.type };
+        }
+
+        function updateDiagram() {
+            const leftMat = document.getElementById('left-doping').value;
+            const rightMat = document.getElementById('right-doping').value;
+
+            const L = getBulkLevels(leftMat, true);
+            const R = getBulkLevels(rightMat, false);
+
+            const wL = L.weight;
+            const wR = R.weight;
+            
+            const R_Ec_int = ((wL * R.Ec_Y) + (wR * (L.Ec_Y + dEc))) / (wL + wR);
+            const L_Ec_int = R_Ec_int - dEc;
+            const L_Ev_int = L_Ec_int + Eg_L;
+            const R_Ev_int = R_Ec_int + Eg_R;
+
+            const path_L_Ec = `M 0 ${L.Ec_Y} Q 400 ${L.Ec_Y} 400 ${L_Ec_int}`;
+            const path_R_Ec = `M 400 ${R_Ec_int} Q 400 ${R.Ec_Y} 800 ${R.Ec_Y}`;
+            const path_L_Ev = `M 0 ${L.Ev_Y} Q 400 ${L.Ev_Y} 400 ${L_Ev_int}`;
+            const path_R_Ev = `M 400 ${R_Ev_int} Q 400 ${R.Ev_Y} 800 ${R.Ev_Y}`;
+
+            document.getElementById('left-ec').setAttribute('d', path_L_Ec);
+            document.getElementById('right-ec').setAttribute('d', path_R_Ec);
+            document.getElementById('left-ev').setAttribute('d', path_L_Ev);
+            document.getElementById('right-ev').setAttribute('d', path_R_Ev);
+
+            document.getElementById('delta-ec-line').setAttribute('y1', L_Ec_int);
+            document.getElementById('delta-ec-line').setAttribute('y2', R_Ec_int);
+            document.getElementById('delta-ev-line').setAttribute('y1', L_Ev_int);
+            document.getElementById('delta-ev-line').setAttribute('y2', R_Ev_int);
+
+            document.getElementById('delta-ec-text').setAttribute('y', (L_Ec_int + R_Ec_int) / 2 + 5);
+            document.getElementById('delta-ev-text').setAttribute('y', (L_Ev_int + R_Ev_int) / 2 + 5);
+            document.getElementById('label-ec-l').setAttribute('y', L.Ec_Y - 10);
+            document.getElementById('label-ev-l').setAttribute('y', L.Ev_Y + 20);
+            document.getElementById('label-ec-r').setAttribute('y', R.Ec_Y - 10);
+            document.getElementById('label-ev-r').setAttribute('y', R.Ev_Y + 20);
+
+            generateAnalysis(leftMat, rightMat, L.type, R.type);
+        }
+
+        function generateAnalysis(l_raw, r_raw, l_type, r_type) {
+            const titleEl = document.getElementById('junction-type');
+            const textEl = document.getElementById('analysis-text');
+
+            let typeStr = "";
+            if (l_type === 'i' && r_type === 'i') typeStr = "Intrinsic Heterojunction";
+            else if (l_type === 'i' || r_type === 'i') typeStr = "Doped-Intrinsic Heterojunction";
+            else if (l_type === r_type) typeStr = `Isotype Heterojunction (${l_type}-${r_type})`;
+            else typeStr = `Anisotype Heterojunction (${l_type}-${r_type})`;
+
+            titleEl.innerText = `${l_raw}-AlGaAs / ${r_raw}-GaAs | ${typeStr}`;
+
+            let desc = `The band offsets are strictly maintained at the interface (ΔE_c ≈ ${(dEc_eV).toFixed(3)} eV, ΔE_v ≈ ${(dEv_eV).toFixed(3)} eV). `;
+
+            if (l_type === 'n' && r_type === 'p') {
+                desc += "This is a classic anisotype configuration. Electrons from the n-side and holes from the p-side recombine, creating a wide depletion region. Notice the characteristic 'spike' and 'notch' in the conduction band, which can impede electron flow.";
+            } else if (l_type === 'p' && r_type === 'n') {
+                desc += "In this reverse anisotype configuration, the bands bend in the opposite direction. If doping is heavy enough (e.g., P++ / n++), the bands will cross the Fermi level on both sides, allowing for quantum tunneling (Esaki diode behavior).";
+            } else if (l_type === 'n' && r_type === 'i') {
+                desc += "Electrons from the doped wide-bandgap material spill over into the undoped narrow-bandgap material. This bends the conduction band below the Fermi level at the interface, forming a Two-Dimensional Electron Gas (2DEG) accumulation layer (High Electron Mobility Transistor principle).";
+            } else if (l_type === r_type && l_type !== 'i') {
+                desc += `Because both materials share the same dominant charge carrier (${l_type}-type), this is an isotype junction. One side accumulates carriers while the other depletes, driven purely by the difference in electron affinities and bandgaps to align the Fermi levels.`;
+            } else if (l_raw.includes('++') || r_raw.includes('++')) {
+                desc += "The presence of degenerate (++) doping pushes the Fermi level into the allowed bands. Band bending occurs predominantly in the lighter-doped material.";
+            } else {
+                desc += "The bands bend to align the chemical potentials (Fermi levels) in thermal equilibrium, satisfying Poisson's equation across the interface.";
+            }
+
+            textEl.innerText = desc;
+        }
+
+        // Initialize on load
+        window.onload = updateDiagram;
+    </script>
+</body>
+</html>
