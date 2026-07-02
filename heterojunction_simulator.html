@@ -10,10 +10,9 @@
             --panel-bg: #ffffff;
             --text-main: #1e293b;
             --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --ec-color: #ef4444; 
-            --ev-color: #3b82f6; 
-            --ef-color: #10b981; 
+            --ec-color: #ef4444; /* Red for Conduction */
+            --ev-color: #3b82f6; /* Blue for Valence */
+            --ef-color: #10b981; /* Green for Fermi */
             --border: #cbd5e1;
         }
         
@@ -106,7 +105,6 @@
         .band-path {
             fill: none;
             stroke-width: 3.5;
-            /* Removed transition: d to fix cross-browser rendering bugs making paths invisible */
         }
         
         .band-line {
@@ -174,32 +172,54 @@
 <body>
 
     <div class="container">
-        <h2>Abrupt Al₀.₃Ga₀.₇As — GaAs Heterojunction Simulator</h2>
+        <h2>Universal Heterojunction Simulator</h2>
         
         <div class="controls-container">
             <div class="control-group">
-                <label for="left-doping">Al₀.₃Ga₀.₇As Doping (Wide Bandgap)</label>
+                <label for="left-doping">Left Material Doping</label>
                 <select id="left-doping" onchange="updateDiagram()">
-                    <option value="n++">n++ (Degenerate N-type)</option>
-                    <option value="n+" selected>n+ (Heavy N-type)</option>
-                    <option value="n">n (Moderate N-type)</option>
-                    <option value="i">i (Intrinsic)</option>
-                    <option value="p">p (Moderate P-type)</option>
-                    <option value="p+">p+ (Heavy P-type)</option>
-                    <option value="p++">p++ (Degenerate P-type)</option>
+                    <optgroup label="Wide Bandgap (AlGaAs)">
+                        <option value="N++">N++ (Degenerate N-type)</option>
+                        <option value="N+" selected>N+ (Heavy N-type)</option>
+                        <option value="N">N (Moderate N-type)</option>
+                        <option value="I">I (Intrinsic)</option>
+                        <option value="P">P (Moderate P-type)</option>
+                        <option value="P+">P+ (Heavy P-type)</option>
+                        <option value="P++">P++ (Degenerate P-type)</option>
+                    </optgroup>
+                    <optgroup label="Narrow Bandgap (GaAs)">
+                        <option value="n++">n++ (Degenerate n-type)</option>
+                        <option value="n+">n+ (Heavy n-type)</option>
+                        <option value="n">n (Moderate n-type)</option>
+                        <option value="i">i (Intrinsic)</option>
+                        <option value="p">p (Moderate p-type)</option>
+                        <option value="p+">p+ (Heavy p-type)</option>
+                        <option value="p++">p++ (Degenerate p-type)</option>
+                    </optgroup>
                 </select>
             </div>
             
             <div class="control-group">
-                <label for="right-doping">GaAs Doping (Narrow Bandgap)</label>
+                <label for="right-doping">Right Material Doping</label>
                 <select id="right-doping" onchange="updateDiagram()">
-                    <option value="n++">n++ (Degenerate N-type)</option>
-                    <option value="n+">n+ (Heavy N-type)</option>
-                    <option value="n">n (Moderate N-type)</option>
-                    <option value="i">i (Intrinsic)</option>
-                    <option value="p" selected>p (Moderate P-type)</option>
-                    <option value="p+">p+ (Heavy P-type)</option>
-                    <option value="p++">p++ (Degenerate P-type)</option>
+                    <optgroup label="Wide Bandgap (AlGaAs)">
+                        <option value="N++">N++ (Degenerate N-type)</option>
+                        <option value="N+">N+ (Heavy N-type)</option>
+                        <option value="N">N (Moderate N-type)</option>
+                        <option value="I">I (Intrinsic)</option>
+                        <option value="P">P (Moderate P-type)</option>
+                        <option value="P+">P+ (Heavy P-type)</option>
+                        <option value="P++">P++ (Degenerate P-type)</option>
+                    </optgroup>
+                    <optgroup label="Narrow Bandgap (GaAs)">
+                        <option value="n++">n++ (Degenerate n-type)</option>
+                        <option value="n+">n+ (Heavy n-type)</option>
+                        <option value="n">n (Moderate n-type)</option>
+                        <option value="i">i (Intrinsic)</option>
+                        <option value="p" selected>p (Moderate p-type)</option>
+                        <option value="p+">p+ (Heavy p-type)</option>
+                        <option value="p++">p++ (Degenerate p-type)</option>
+                    </optgroup>
                 </select>
             </div>
         </div>
@@ -209,9 +229,9 @@
                 <!-- Interface Line -->
                 <line x1="400" y1="30" x2="400" y2="570" class="interface-line" />
                 
-                <!-- Material Labels -->
-                <text x="200" y="40" class="label" text-anchor="middle">Al₀.₃Ga₀.₇As (Eg = 1.85 eV)</text>
-                <text x="600" y="40" class="label" text-anchor="middle">GaAs (Eg = 1.42 eV)</text>
+                <!-- Dynamic Material Labels -->
+                <text x="200" y="40" id="left-mat-label" class="label" text-anchor="middle">Material 1</text>
+                <text x="600" y="40" id="right-mat-label" class="label" text-anchor="middle">Material 2</text>
 
                 <!-- Fermi Level -->
                 <line x1="0" y1="300" x2="800" y2="300" class="ef" />
@@ -252,126 +272,196 @@
             <span class="analysis-title" id="junction-type">Junction Type:</span>
             <span id="analysis-text">Select doping parameters to view junction behavior.</span>
         </div>
-
     </div>
 
     <script>
         /**
-         * Physics Engine for Heterojunction Visualization
-         * Scale: 1 eV = 120 pixels
-         * Fermi Level (E_F) is fixed at Y = 300
+         * Dynamic Vacuum-Aligned Physics Engine
+         * Handles Any-to-Any Junctions (Homo & Heterojunctions)
          */
-        const SCALE = 120; 
-        const EF_Y = 300;
+        const SCALE = 120; // Pixels per eV
+        const Y_EF = 300;  // Fixed Fermi Level Y position
 
-        // Bandgaps in eV
-        const Eg_L_eV = 1.85; 
-        const Eg_R_eV = 1.42;
-
-        // Offsets in eV (ΔEc = 2/3 ΔEg)
-        const dEg_eV = Eg_L_eV - Eg_R_eV;
-        const dEc_eV = (2/3) * dEg_eV; 
-        const dEv_eV = (1/3) * dEg_eV;
-
-        // Convert to Pixels
-        const Eg_L = Eg_L_eV * SCALE;
-        const Eg_R = Eg_R_eV * SCALE;
-        const dEc = dEc_eV * SCALE;
-        const dEv = dEv_eV * SCALE;
-
-        // Doping Profile Definitions
-        const dopingProfiles = {
-            "n++": { type: "n", offset: -0.1, weight: 1000 },
-            "n+":  { type: "n", offset: 0.0,  weight: 100 },
-            "n":   { type: "n", offset: 0.15, weight: 10 },
-            "i":   { type: "i", offset: "mid",weight: 1 },
-            "p":   { type: "p", offset: 0.15, weight: 10 },
-            "p+":  { type: "p", offset: 0.0,  weight: 100 },
-            "p++": { type: "p", offset: -0.1, weight: 1000 }
+        // Material Properties Definitions
+        const MAT = {
+            'WIDE': { eg: 1.85, chi: 3.783, name: 'Al₀.₃Ga₀.₇As' }, // chi is set so dEc = 0.287 relative to GaAs
+            'NARROW': { eg: 1.42, chi: 4.07, name: 'GaAs' }
         };
 
-        function getBulkLevels(material, isLeft) {
-            const profile = dopingProfiles[material];
-            const Eg = isLeft ? Eg_L : Eg_R;
-            let Ec_Y, Ev_Y;
-
-            if (profile.type === "i") {
-                Ec_Y = EF_Y - (Eg / 2);
-                Ev_Y = EF_Y + (Eg / 2);
-            } else if (profile.type === "n") {
-                Ec_Y = EF_Y - (profile.offset * SCALE);
-                Ev_Y = Ec_Y + Eg;
-            } else if (profile.type === "p") {
-                Ev_Y = EF_Y + (profile.offset * SCALE);
-                Ec_Y = Ev_Y - Eg;
-            }
-
-            return { Ec_Y, Ev_Y, weight: profile.weight, type: profile.type };
-        }
+        // Doping Profiles mapped to specific material bands based on case
+        const dopingProfiles = {
+            "N++": { type: "n", offset: -0.1, weight: 1000, band: 'WIDE', raw: 'N++' },
+            "N+":  { type: "n", offset: 0.0,  weight: 100,  band: 'WIDE', raw: 'N+' },
+            "N":   { type: "n", offset: 0.15, weight: 10,   band: 'WIDE', raw: 'N' },
+            "I":   { type: "i", offset: "mid",weight: 1,    band: 'WIDE', raw: 'I' },
+            "P":   { type: "p", offset: 0.15, weight: 10,   band: 'WIDE', raw: 'P' },
+            "P+":  { type: "p", offset: 0.0,  weight: 100,  band: 'WIDE', raw: 'P+' },
+            "P++": { type: "p", offset: -0.1, weight: 1000, band: 'WIDE', raw: 'P++' },
+            "n++": { type: "n", offset: -0.1, weight: 1000, band: 'NARROW', raw: 'n++' },
+            "n+":  { type: "n", offset: 0.0,  weight: 100,  band: 'NARROW', raw: 'n+' },
+            "n":   { type: "n", offset: 0.15, weight: 10,   band: 'NARROW', raw: 'n' },
+            "i":   { type: "i", offset: "mid",weight: 1,    band: 'NARROW', raw: 'i' },
+            "p":   { type: "p", offset: 0.15, weight: 10,   band: 'NARROW', raw: 'p' },
+            "p+":  { type: "p", offset: 0.0,  weight: 100,  band: 'NARROW', raw: 'p+' },
+            "p++": { type: "p", offset: -0.1, weight: 1000, band: 'NARROW', raw: 'p++' }
+        };
 
         function updateDiagram() {
-            const leftMat = document.getElementById('left-doping').value;
-            const rightMat = document.getElementById('right-doping').value;
+            const leftMatStr = document.getElementById('left-doping').value;
+            const rightMatStr = document.getElementById('right-doping').value;
 
-            const L = getBulkLevels(leftMat, true);
-            const R = getBulkLevels(rightMat, false);
+            const l_prof = dopingProfiles[leftMatStr];
+            const r_prof = dopingProfiles[rightMatStr];
 
-            const wL = L.weight;
-            const wR = R.weight;
+            const l_mat = MAT[l_prof.band];
+            const r_mat = MAT[r_prof.band];
+
+            // Update UI Labels
+            document.getElementById('left-mat-label').textContent = `${l_mat.name} (Eg = ${l_mat.eg.toFixed(2)} eV)`;
+            document.getElementById('right-mat-label').textContent = `${r_mat.name} (Eg = ${r_mat.eg.toFixed(2)} eV)`;
+
+            // 1. Calculate Bulk Levels relative to E_F
+            let Y_cL, Y_vL, Y_cR, Y_vR;
+
+            // Left Bulk
+            if (l_prof.type === 'i') {
+                Y_cL = Y_EF - (l_mat.eg / 2) * SCALE;
+            } else if (l_prof.type === 'n') {
+                Y_cL = Y_EF - (l_prof.offset * SCALE);
+            } else {
+                Y_cL = Y_EF - (l_mat.eg * SCALE) + (l_prof.offset * SCALE);
+            }
+            Y_vL = Y_cL + (l_mat.eg * SCALE);
+
+            // Right Bulk
+            if (r_prof.type === 'i') {
+                Y_cR = Y_EF - (r_mat.eg / 2) * SCALE;
+            } else if (r_prof.type === 'n') {
+                Y_cR = Y_EF - (r_prof.offset * SCALE);
+            } else {
+                Y_cR = Y_EF - (r_mat.eg * SCALE) + (r_prof.offset * SCALE);
+            }
+            Y_vR = Y_cR + (r_mat.eg * SCALE);
+
+            // 2. Determine Vacuum Alignment & Built-in Potential
+            // Vacuum level in bulk = Ec bulk - Electron Affinity
+            const Y_vac_L_bulk = Y_cL - (l_mat.chi * SCALE);
+            const Y_vac_R_bulk = Y_cR - (r_mat.chi * SCALE);
+
+            // Total bending required to align vacuum levels (Vbi)
+            const Vbi_px = Y_vac_R_bulk - Y_vac_L_bulk; 
+
+            // Split bending inversely proportional to doping weight (depletion width analog)
+            const wL = l_prof.weight;
+            const wR = r_prof.weight;
+            const bend_L_px = Vbi_px * (wR / (wL + wR));
+            const bend_R_px = Vbi_px * (wL / (wL + wR)); // Used implicitly below
+
+            // 3. Calculate Interface Positions
+            const Y_vac_int = Y_vac_L_bulk + bend_L_px;
+
+            const Y_cL_int = Y_vac_int + (l_mat.chi * SCALE);
+            const Y_vL_int = Y_cL_int + (l_mat.eg * SCALE);
             
-            const R_Ec_int = ((wL * R.Ec_Y) + (wR * (L.Ec_Y + dEc))) / (wL + wR);
-            const L_Ec_int = R_Ec_int - dEc;
-            const L_Ev_int = L_Ec_int + Eg_L;
-            const R_Ev_int = R_Ec_int + Eg_R;
+            const Y_cR_int = Y_vac_int + (r_mat.chi * SCALE);
+            const Y_vR_int = Y_cR_int + (r_mat.eg * SCALE);
 
-            const path_L_Ec = `M 0 ${L.Ec_Y} Q 400 ${L.Ec_Y} 400 ${L_Ec_int}`;
-            const path_R_Ec = `M 400 ${R_Ec_int} Q 400 ${R.Ec_Y} 800 ${R.Ec_Y}`;
-            const path_L_Ev = `M 0 ${L.Ev_Y} Q 400 ${L.Ev_Y} 400 ${L_Ev_int}`;
-            const path_R_Ev = `M 400 ${R_Ev_int} Q 400 ${R.Ev_Y} 800 ${R.Ev_Y}`;
+            // 4. Generate Bezier Curves for Band Bending
+            const path_L_Ec = `M 0 ${Y_cL} Q 400 ${Y_cL} 400 ${Y_cL_int}`;
+            const path_R_Ec = `M 400 ${Y_cR_int} Q 400 ${Y_cR} 800 ${Y_cR}`;
+            const path_L_Ev = `M 0 ${Y_vL} Q 400 ${Y_vL} 400 ${Y_vL_int}`;
+            const path_R_Ev = `M 400 ${Y_vR_int} Q 400 ${Y_vR} 800 ${Y_vR}`;
 
+            // Apply Paths
             document.getElementById('left-ec').setAttribute('d', path_L_Ec);
             document.getElementById('right-ec').setAttribute('d', path_R_Ec);
             document.getElementById('left-ev').setAttribute('d', path_L_Ev);
             document.getElementById('right-ev').setAttribute('d', path_R_Ev);
 
-            document.getElementById('delta-ec-line').setAttribute('y1', L_Ec_int);
-            document.getElementById('delta-ec-line').setAttribute('y2', R_Ec_int);
-            document.getElementById('delta-ev-line').setAttribute('y1', L_Ev_int);
-            document.getElementById('delta-ev-line').setAttribute('y2', R_Ev_int);
+            // Apply Interface Discontinuity Lines
+            const dEc_px = Math.abs(Y_cL_int - Y_cR_int);
+            const dEv_px = Math.abs(Y_vL_int - Y_vR_int);
 
-            document.getElementById('delta-ec-text').setAttribute('y', (L_Ec_int + R_Ec_int) / 2 + 5);
-            document.getElementById('delta-ev-text').setAttribute('y', (L_Ev_int + R_Ev_int) / 2 + 5);
-            document.getElementById('label-ec-l').setAttribute('y', L.Ec_Y - 10);
-            document.getElementById('label-ev-l').setAttribute('y', L.Ev_Y + 20);
-            document.getElementById('label-ec-r').setAttribute('y', R.Ec_Y - 10);
-            document.getElementById('label-ev-r').setAttribute('y', R.Ev_Y + 20);
+            const ecLine = document.getElementById('delta-ec-line');
+            const evLine = document.getElementById('delta-ev-line');
+            const ecText = document.getElementById('delta-ec-text');
+            const evText = document.getElementById('delta-ev-text');
 
-            generateAnalysis(leftMat, rightMat, L.type, R.type);
+            if (dEc_px > 1) {
+                ecLine.style.display = 'block';
+                ecText.style.display = 'block';
+                ecLine.setAttribute('y1', Y_cL_int);
+                ecLine.setAttribute('y2', Y_cR_int);
+                ecText.setAttribute('y', (Y_cL_int + Y_cR_int) / 2 + 5);
+            } else {
+                ecLine.style.display = 'none';
+                ecText.style.display = 'none';
+            }
+
+            if (dEv_px > 1) {
+                evLine.style.display = 'block';
+                evText.style.display = 'block';
+                evLine.setAttribute('y1', Y_vL_int);
+                evLine.setAttribute('y2', Y_vR_int);
+                evText.setAttribute('y', (Y_vL_int + Y_vR_int) / 2 + 5);
+            } else {
+                evLine.style.display = 'none';
+                evText.style.display = 'none';
+            }
+
+            // Update Labels Positioning
+            document.getElementById('label-ec-l').setAttribute('y', Y_cL - 10);
+            document.getElementById('label-ev-l').setAttribute('y', Y_vL + 20);
+            document.getElementById('label-ec-r').setAttribute('y', Y_cR - 10);
+            document.getElementById('label-ev-r').setAttribute('y', Y_vR + 20);
+
+            // 5. Generate Dynamic Analysis Text
+            generateAnalysis(l_prof, r_prof, l_mat, r_mat);
         }
 
-        function generateAnalysis(l_raw, r_raw, l_type, r_type) {
+        function generateAnalysis(l_prof, r_prof, l_mat, r_mat) {
             const titleEl = document.getElementById('junction-type');
             const textEl = document.getElementById('analysis-text');
 
+            const isHomojunction = (l_prof.band === r_prof.band);
+            
             let typeStr = "";
-            if (l_type === 'i' && r_type === 'i') typeStr = "Intrinsic Heterojunction";
-            else if (l_type === 'i' || r_type === 'i') typeStr = "Doped-Intrinsic Heterojunction";
-            else if (l_type === r_type) typeStr = `Isotype Heterojunction (${l_type}-${r_type})`;
-            else typeStr = `Anisotype Heterojunction (${l_type}-${r_type})`;
+            if (l_prof.type === 'i' && r_prof.type === 'i') typeStr = "Intrinsic";
+            else if (l_prof.type === 'i' || r_prof.type === 'i') typeStr = "Doped-Intrinsic";
+            else if (l_prof.type === r_prof.type) typeStr = `Isotype (${l_prof.raw}-${r_prof.raw})`;
+            else typeStr = `Anisotype (${l_prof.raw}-${r_prof.raw})`;
 
-            titleEl.innerText = `${l_raw}-AlGaAs / ${r_raw}-GaAs | ${typeStr}`;
+            typeStr += isHomojunction ? " Homojunction" : " Heterojunction";
+            
+            titleEl.innerText = `${l_mat.name} / ${r_mat.name} | ${typeStr}`;
 
-            let desc = `The band offsets are strictly maintained at the interface (ΔE_c ≈ ${(dEc_eV).toFixed(3)} eV, ΔE_v ≈ ${(dEv_eV).toFixed(3)} eV). `;
+            let desc = "";
+            
+            if (isHomojunction) {
+                desc += "Because both materials share the same bandgap and electron affinity, the bands align perfectly without discontinuities (ΔE_c = 0, ΔE_v = 0). ";
+            } else {
+                const dEc_val = Math.abs(l_mat.chi - r_mat.chi);
+                const l_ev_aff = l_mat.chi + l_mat.eg;
+                const r_ev_aff = r_mat.chi + r_mat.eg;
+                const dEv_val = Math.abs(l_ev_aff - r_ev_aff);
+                
+                desc += `The band offsets are strictly maintained at the interface based on Anderson's rule (ΔE_c ≈ ${dEc_val.toFixed(3)} eV, ΔE_v ≈ ${dEv_val.toFixed(3)} eV). `;
+            }
 
-            if (l_type === 'n' && r_type === 'p') {
-                desc += "This is a classic anisotype configuration. Electrons from the n-side and holes from the p-side recombine, creating a wide depletion region. Notice the characteristic 'spike' and 'notch' in the conduction band, which can impede electron flow.";
-            } else if (l_type === 'p' && r_type === 'n') {
-                desc += "In this reverse anisotype configuration, the bands bend in the opposite direction. If doping is heavy enough (e.g., P++ / n++), the bands will cross the Fermi level on both sides, allowing for quantum tunneling (Esaki diode behavior).";
-            } else if (l_type === 'n' && r_type === 'i') {
-                desc += "Electrons from the doped wide-bandgap material spill over into the undoped narrow-bandgap material. This bends the conduction band below the Fermi level at the interface, forming a Two-Dimensional Electron Gas (2DEG) accumulation layer (High Electron Mobility Transistor principle).";
-            } else if (l_type === r_type && l_type !== 'i') {
-                desc += `Because both materials share the same dominant charge carrier (${l_type}-type), this is an isotype junction. One side accumulates carriers while the other depletes, driven purely by the difference in electron affinities and bandgaps to align the Fermi levels.`;
-            } else if (l_raw.includes('++') || r_raw.includes('++')) {
+            if (l_prof.type === 'n' && r_prof.type === 'p') {
+                desc += "Electrons from the n-side and holes from the p-side recombine, creating a wide depletion region. ";
+                if (!isHomojunction) desc += "Notice the characteristic 'spike' and 'notch' depending on the orientation, which can impede carrier flow.";
+            } else if (l_prof.type === 'p' && r_prof.type === 'n') {
+                desc += "This forms a depletion region. If doping is heavy enough (e.g., P++ / n++), the bands will cross the Fermi level on both sides, allowing for quantum tunneling (Esaki diode behavior).";
+            } else if ((l_prof.type === 'n' && r_prof.type === 'i') || (l_prof.type === 'i' && r_prof.type === 'n')) {
+                if (!isHomojunction && ((l_prof.type === 'n' && l_prof.band === 'WIDE') || (r_prof.type === 'n' && r_prof.band === 'WIDE'))) {
+                    desc += "Electrons from the doped wide-bandgap material spill over into the undoped narrow-bandgap material, forming a Two-Dimensional Electron Gas (2DEG) accumulation layer (High Electron Mobility Transistor principle).";
+                } else {
+                    desc += "Carriers from the doped side spill into the intrinsic side, establishing a localized accumulation/depletion boundary.";
+                }
+            } else if (l_prof.type === r_prof.type && l_prof.type !== 'i') {
+                desc += `One side accumulates carriers while the other depletes, driven purely by the difference in work functions and bandgaps to align the Fermi levels in equilibrium.`;
+            } else if (l_prof.raw.includes('++') || r_prof.raw.includes('++')) {
                 desc += "The presence of degenerate (++) doping pushes the Fermi level into the allowed bands. Band bending occurs predominantly in the lighter-doped material.";
             } else {
                 desc += "The bands bend to align the chemical potentials (Fermi levels) in thermal equilibrium, satisfying Poisson's equation across the interface.";
