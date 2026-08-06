@@ -42,7 +42,7 @@ All simulations are built with pure **HTML5**, **CSS3**, and **Vanilla JavaScrip
 - **Electron / Hole Carrier Flow** – animated particles show current transport.
 - **Professor Mode** – instantly switch between n‑channel and p‑channel, with automatic sign‑convention flipping and equation updates.
 - **Graph Transformations** – plot √ID vs VGS, ID² vs VGS, transconductance (gm), and output conductance (gd) for deeper analysis.
-- **Nonideal Effects** – channel length modulation, velocity saturation, field‑dependent mobility, subthreshold conduction and gate leakage.
+- **Nonideal Effects** – channel length modulation, velocity saturation, field‑dependent mobility, subthreshold conduction and gate leakage. 
 - **HEMT / 2‑DEG** – visualize the AlGaAs/GaAs heterojunction and the formation of a two‑dimensional electron gas (2‑DEG) quantum well.
 
 ---
