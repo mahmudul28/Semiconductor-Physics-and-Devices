@@ -1,7 +1,8 @@
 # ⚡ JFET Physics Lab
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Made with Love](https://img.shields.io/badge/Made%20with-❤️-red.svg)](https://github.com/mahmudul28/Semiconductor-Physics-and-Devices)
+
+[🏠 Open Main Dashboard](./The%20Junction%20Field-Effect%20Transistor/index.html)
 
 **Advanced Interactive Semiconductor Device Physics Visualization Suite**  
 Explore the inner workings of field‑effect transistors through dynamic, real‑time visual simulations.
@@ -10,7 +11,7 @@ Explore the inner workings of field‑effect transistors through dynamic, real�
 
 ## 📖 Description
 
-This project provides an immersive, hands‑on learning environment for **JFET**, **MESFET**, **Enhancement MESFET**, **nonideal effects** and **HEMT / MODFET** concepts.  
+This project provides an immersive, hands‑on learning environment for **JFET**, **MESFET**, **Enhancement MESFET**, **nonideal effects**, and **HEMT / MODFET** concepts.  
 It combines intuitive graphical interfaces with physics‑accurate models to help students, educators and engineers visualize:
 
 - Depletion‑region formation and modulation
@@ -23,8 +24,6 @@ All simulations are built with pure **HTML5**, **CSS3**, and **Vanilla JavaScrip
 ---
 
 ## 🚀 Live Module Links
-
-Launch any of the interactive labs directly from your browser:
 
 | Module | Description | Link |
 |--------|-------------|------|
@@ -48,12 +47,23 @@ Launch any of the interactive labs directly from your browser:
 
 ---
 
-## 📁 Project Structure
+## 🧭 Recommended Learning Path
 
-```text
-Semiconductor-Physics-and-Devices/
-└── The Junction Field-Effect Transistor/
-    ├── index.html
-    ├── geometry-field.html
-    ├── graph-lab.html
-    └── advanced-effects.html
+1. **[Structure Lab](./The%20Junction%20Field-Effect%20Transistor/geometry-field.html)** – start with the device cross‑section to understand geometry, doping and depletion.
+2. **[Graph Laboratory](./The%20Junction%20Field-Effect%20Transistor/graph-lab.html)** – analyse transfer and output characteristics, extract parameters and explore Professor Mode.
+3. **[Advanced Physics & HEMT Lab](./The%20Junction%20Field-Effect%20Transistor/advanced-effects.html)** – dive into second‑order effects and modern heterojunction devices.
+
+---
+
+## 👤 Author
+
+**Mahmudul Hasan (2202156)**  
+Department of Electrical & Electronic Engineering (EEE)
+
+---
+
+## 💡 Final Note
+
+> *From depletion width to quantum wells — visualize the physics, not just the equations.*
+
+Explore, experiment, and deepen your understanding of semiconductor device physics through interactive simulation.
