@@ -8,7 +8,7 @@ Interactive energy band diagram simulators for exploring heterojunctions and met
 
 Click the link below to open your main simulation dashboard directly in your browser. You can access all three simulators seamlessly from this single landing page:
 
-👉 [**Launch Semiconductor Simulators Dashboard →**](https://mahmudul28.github.io/Semiconductor-Physics-and-Devices/)
+👉 [**Launch Semiconductor Simulators Dashboard →**](https://mahmudul28.github.io/Semiconductor-Physics-and-Devices/Metal-semiconductor%20%26%20semiconductor%20heterojunctions/)
 
 ---
 
