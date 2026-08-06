@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced FET Graph Laboratory</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- MathJax: configured BEFORE the library loads so the config is honored on first parse. -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                packages: { '[+]': ['ams'] }
+            },
+            svg: { fontCache: 'global' },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+            },
+            startup: {
+                typeset: false
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" id="MathJax-script" async></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #e2e8f0;
+            overflow: hidden;
+        }
+
+        .math-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        .panel {
+            background-color: #1e293b;
+            border: 1px solid #334155;
+        }
+
+        .glowing-border:focus-within {
+            box-shadow: 0 0 0 2px #3b82f6;
+            border-color: #3b82f6;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 14px;
+            width: 14px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            margin-top: -5px;
+            box-shadow: 0 0 5px rgba(56, 189, 248, 0.5);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #475569;
+            border-radius: 2px;
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+
+        .prof-mode-active .prof-banner {
+            display: flex;
+            animation: pulse-border 2s infinite;
+        }
+
+        @keyframes pulse-border {
+            0% { border-color: rgba(239, 68, 68, 0.5); box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); }
+            50% { border-color: rgba(239, 68, 68, 1); box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); }
+            100% { border-color: rgba(239, 68, 68, 0.5); box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); }
+        }
+
+        .accordion-content {
+            transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+        }
+        .accordion-content.open {
+            max-height: 500px;
+            opacity: 1;
+        }
+
+        /* Crosshair styling */
+        .chartjs-crosshair {
+            pointer-events: none;
+            position: absolute;
+            z-index: 100;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col text-sm">
+
+    <!-- Top Header -->
+    <header class="bg-slate-900 border-b border-slate-700 p-3 flex justify-between items-center z-10 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded bg-blue-600 flex items-center justify-center font-bold text-white shadow-[0_0_15px_rgba(37,99,235,0.6)]">
+                GL
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-wider text-slate-100">GRAPH LABORATORY</h1>
+                <p class="text-xs text-slate-400">JFET/MESFET Advanced Transfer & Characteristics Analyzer</p>
+            </div>
+        </div>
+        
+        <!-- Professor Mode Toggle -->
+        <div class="flex items-center gap-4">
+            <div id="profBanner" class="hidden prof-banner items-center gap-2 bg-red-950/50 border border-red-500 text-red-400 px-4 py-1.5 rounded font-bold text-xs tracking-wider">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                PROFESSOR MODE ACTIVE: POLARITIES REVERSED
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="profModeToggle" class="sr-only peer">
+                <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600 shadow-[0_0_10px_rgba(0,0,0,0.5)]"></div>
+                <span class="ml-3 font-semibold text-slate-300">Professor Mode</span>
+            </label>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 flex overflow-hidden">
+        
+        <!-- LEFT PANEL: Controls -->
+        <aside class="panel w-80 flex flex-col shrink-0 z-10 border-r overflow-y-auto">
+            <div class="p-4 flex flex-col gap-5">
+                
+                <!-- Device Selection -->
+                <div class="flex flex-col gap-2">
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Device</label>
+                    <select id="deviceSelect" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-white focus:border-blue-500 focus:outline-none transition-colors">
+                        <option value="n-jfet">n-channel JFET</option>
+                        <option value="p-jfet">p-channel JFET</option>
+                        <option value="n-dep-mesfet">n-channel Depletion MESFET</option>
+                        <option value="n-enh-mesfet">n-channel Enhancement MESFET</option>
+                        <option value="hemt">HEMT (Simplified Model)</option>
+                    </select>
+                </div>
+
+                <!-- Presets -->
+                <div class="flex flex-col gap-2">
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Quick Presets</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button class="preset-btn bg-slate-700 hover:bg-slate-600 text-xs py-1.5 rounded transition-colors" data-preset="drain">Drain Chars</button>
+                        <button class="preset-btn bg-slate-700 hover:bg-slate-600 text-xs py-1.5 rounded transition-colors" data-preset="transfer">Transfer Curve</button>
+                        <button class="preset-btn bg-slate-700 hover:bg-slate-600 text-xs py-1.5 rounded transition-colors" data-preset="linear">Linearization (√ID)</button>
+                        <button class="preset-btn bg-slate-700 hover:bg-slate-600 text-xs py-1.5 rounded transition-colors" data-preset="gm">Small-Signal gm</button>
+                    </div>
+                </div>
+
+                <!-- Transformation Builder -->
+                <div class="border border-indigo-500/30 bg-indigo-900/10 rounded p-3 flex flex-col gap-3 shadow-[inset_0_0_15px_rgba(79,70,229,0.05)]">
+                    <div class="flex items-center gap-2 text-indigo-400 mb-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+                        <h3 class="text-xs font-bold uppercase tracking-wider">Graph Transformation</h3>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] text-slate-400 uppercase">Y-Axis (Function)</label>
+                            <select id="yAxisSelect" class="w-full bg-slate-800 border border-slate-600 rounded p-1.5 text-xs focus:border-indigo-500 focus:outline-none">
+                                <option value="id">ID (mA)</option>
+                                <option value="sqrt_id">√ID (√mA)</option>
+                                <option value="id_sq">ID² (mA²)</option>
+                                <option value="log_id">log10(|ID|)</option>
+                                <option value="id_norm">ID / IDSS</option>
+                                <option value="gm">gm (mS)</option>
+                                <option value="gd">gd (mS)</option>
+                                <option value="gm_id">gm / ID (1/V)</option>
+                            </select>
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] text-slate-400 uppercase">X-Axis (Variable)</label>
+                            <select id="xAxisSelect" class="w-full bg-slate-800 border border-slate-600 rounded p-1.5 text-xs focus:border-indigo-500 focus:outline-none">
+                                <option value="vds">VDS (Drain Volts)</option>
+                                <option value="vgs">VGS (Gate Volts)</option>
+                                <option value="vgs-vt">VGS − VT (Overdrive)</option>
+                                <option value="vds-norm">VDS / VDS(sat)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Device Parameters (Sliders) -->
+                <div class="flex flex-col gap-4">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-700 pb-1">Device Parameters</h3>
+                    
+                    <!-- IDSS / kn -->
+                    <div class="flex flex-col gap-1">
+                        <div class="flex justify-between items-end">
+                            <label id="lbl-param1" class="text-xs text-slate-300 font-semibold">I<sub>DSS</sub> (Max Current)</label>
+                            <span id="val-param1" class="text-xs text-cyan-400 font-mono">10.0 mA</span>
+                        </div>
+                        <input type="range" id="slider-param1" min="1" max="50" step="0.5" value="10">
+                    </div>
+
+                    <!-- Vp / VT -->
+                    <div class="flex flex-col gap-1">
+                        <div class="flex justify-between items-end">
+                            <label id="lbl-param2" class="text-xs text-slate-300 font-semibold">V<sub>p</sub> (Pinch-off)</label>
+                            <span id="val-param2" class="text-xs text-cyan-400 font-mono">-4.0 V</span>
+                        </div>
+                        <input type="range" id="slider-param2" min="-10" max="-0.5" step="0.1" value="-4">
+                    </div>
+
+                    <!-- Channel Length Mod (Lambda) -->
+                    <div class="flex flex-col gap-1">
+                        <div class="flex justify-between items-end">
+                            <label class="text-xs text-slate-300 font-semibold">&lambda; (Ch. Length Mod)</label>
+                            <span id="val-lambda" class="text-xs text-cyan-400 font-mono">0.00 V⁻¹</span>
+                        </div>
+                        <input type="range" id="slider-lambda" min="0" max="0.2" step="0.01" value="0">
+                    </div>
+                    
+                    <!-- Velocity Saturation Factor -->
+                    <div class="flex flex-col gap-1">
+                        <div class="flex justify-between items-end">
+                            <label class="text-xs text-slate-300 font-semibold">&alpha; (Velocity Saturation)</label>
+                            <span id="val-vsat" class="text-xs text-cyan-400 font-mono">0.00</span>
+                        </div>
+                        <input type="range" id="slider-vsat" min="0" max="0.5" step="0.01" value="0">
+                    </div>
+                </div>
+                
+                <!-- Operating Point Overrides (Used for specific graphs) -->
+                <div id="op-point-section" class="flex flex-col gap-4 mt-2">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-700 pb-1">Operating Point</h3>
+                    
+                    <div id="container-op-vgs" class="flex flex-col gap-1">
+                        <div class="flex justify-between items-end">
+                            <label class="text-xs text-slate-300 font-semibold">Base V<sub>GS</sub></label>
+                            <span id="val-op-vgs" class="text-xs text-orange-400 font-mono">0.0 V</span>
+                        </div>
+                        <input type="range" id="slider-op-vgs" min="-10" max="5" step="0.1" value="0">
+                    </div>
+
+                    <div id="container-op-vds" class="flex flex-col gap-1 hidden">
+                        <div class="flex justify-between items-end">
+                            <label class="text-xs text-slate-300 font-semibold">Base V<sub>DS</sub></label>
+                            <span id="val-op-vds" class="text-xs text-orange-400 font-mono">10.0 V</span>
+                        </div>
+                        <input type="range" id="slider-op-vds" min="0" max="20" step="0.1" value="10">
+                    </div>
+                    
+                    <!-- Multi-curve configuration -->
+                    <div class="flex items-center justify-between mt-2 p-2 bg-slate-900 rounded border border-slate-700">
+                        <label class="text-xs text-slate-300">Family of Curves</label>
+                        <select id="multiCurveSelect" class="bg-slate-800 border border-slate-600 rounded text-xs p-1 focus:outline-none focus:border-blue-500">
+                            <option value="1">1 Curve</option>
+                            <option value="3" selected>3 Curves</option>
+                            <option value="5">5 Curves</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Nonideal Overlays -->
+                <div class="flex flex-col gap-2 border-t border-slate-700 pt-3 mt-1">
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Nonideal Overlays</label>
+                    <div class="flex flex-wrap gap-2">
+                        <label class="flex items-center gap-1 text-xs text-slate-300">
+                            <input type="checkbox" id="overlay-ideal" checked class="accent-blue-500"> Ideal
+                        </label>
+                        <label class="flex items-center gap-1 text-xs text-slate-300">
+                            <input type="checkbox" id="overlay-lambda" class="accent-blue-500"> λ
+                        </label>
+                        <label class="flex items-center gap-1 text-xs text-slate-300">
+                            <input type="checkbox" id="overlay-vsat" class="accent-blue-500"> α
+                        </label>
+                        <label class="flex items-center gap-1 text-xs text-slate-300">
+                            <input type="checkbox" id="overlay-sub" class="accent-blue-500"> Subthreshold
+                        </label>
+                        <label class="flex items-center gap-1 text-xs text-slate-300">
+                            <input type="checkbox" id="overlay-exp" class="accent-blue-500"> Experimental
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CENTER PANEL: Graph Area -->
+        <section class="flex-1 flex flex-col bg-[#0b1120] relative">
+            
+            <!-- Graph Header Info -->
+            <div class="absolute top-4 left-4 right-4 flex justify-between pointer-events-none z-10">
+                <div id="graphTitle" class="bg-slate-900/80 backdrop-blur border border-slate-700 px-4 py-2 rounded shadow-lg text-sm font-bold text-slate-200">
+                    Drain Characteristics: I<sub>D</sub> vs V<sub>DS</sub>
+                </div>
+            </div>
+
+            <!-- Chart Canvas Container -->
+            <div class="flex-1 p-4 pt-16 pb-20 w-full h-full relative">
+                <canvas id="mainChart"></canvas>
+                <!-- Crosshair overlay will be managed by plugin -->
+            </div>
+
+            <!-- Export Footer -->
+            <div class="absolute bottom-0 w-full bg-slate-900/80 backdrop-blur border-t border-slate-700 p-3 flex justify-center gap-4 z-10">
+                <button id="btn-export-png" class="flex items-center gap-2 px-4 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded text-xs text-slate-300 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    Export PNG
+                </button>
+                <button id="btn-export-csv" class="flex items-center gap-2 px-4 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded text-xs text-slate-300 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Export CSV Data
+                </button>
+                <button id="btn-reset-view" class="flex items-center gap-2 px-4 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded text-xs text-slate-300 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Reset View
+                </button>
+            </div>
+        </section>
+
+        <!-- RIGHT PANEL: Analysis & Education -->
+        <aside class="panel w-80 flex flex-col shrink-0 z-10 border-l overflow-y-auto bg-slate-900">
+            <div class="p-4 flex flex-col gap-6">
+                
+                <!-- Status Dashboard -->
+                <div>
+                    <h2 class="text-sm font-bold text-slate-300 uppercase tracking-widest border-b border-slate-700 pb-2 mb-3">Live Analysis</h2>
+                    
+                    <div class="bg-slate-800 rounded p-3 border border-slate-700 space-y-3">
+                        <div class="flex justify-between items-center border-b border-slate-700/50 pb-2">
+                            <span class="text-xs text-slate-400">Device Configuration</span>
+                            <span id="readout-device" class="text-xs font-bold text-blue-400">n-JFET</span>
+                        </div>
+                        
+                        <div class="flex flex-col gap-1 border-b border-slate-700/50 pb-2">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-slate-400">Active Mathematical Model</span>
+                                <div id="eqModeGroup" class="flex bg-black/30 rounded overflow-hidden border border-slate-700">
+                                    <button type="button" data-mode="compact" class="eq-mode-btn px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-slate-300 hover:bg-slate-700 transition-colors">Compact</button>
+                                    <button type="button" data-mode="exam" class="eq-mode-btn px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-slate-300 hover:bg-slate-700 transition-colors">Exam</button>
+                                    <button type="button" data-mode="derivation" class="eq-mode-btn px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-slate-300 hover:bg-slate-700 transition-colors">Derive</button>
+                                </div>
+                            </div>
+                            <div id="readout-equation" class="text-[11px] text-green-400 mt-1 bg-black/30 p-2 rounded break-words">
+                                <div id="eq-region-badge" class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Saturation Region</div>
+                                <div id="eq-mathjax-target" class="text-slate-100">$$I_D=I_{DSS}\left(1-\frac{V_{GS}}{V_P}\right)^2$$</div>
+                                <div id="eq-exam-defs" class="hidden text-[10px] text-slate-400 mt-1 leading-relaxed"></div>
+                                <div id="eq-derivation" class="hidden text-[10px] text-cyan-300/80 mt-1 leading-relaxed"></div>
+                                <div id="eq-meaning" class="text-[10px] text-slate-500 mt-2 italic leading-relaxed"></div>
+                            </div>
+                        </div>
+
+                        <!-- Enhanced Readouts -->
+                        <div class="grid grid-cols-2 gap-2 pt-1">
+                            <div class="bg-black/20 p-2 rounded">
+                                <div class="text-[10px] text-slate-500 uppercase">V<sub>DS</sub>(sat)</div>
+                                <div id="readout-vdssat" class="math-font text-xs text-slate-200">-- V</div>
+                            </div>
+                            <div class="bg-black/20 p-2 rounded">
+                                <div class="text-[10px] text-slate-500 uppercase">Region</div>
+                                <div id="readout-region" class="font-bold text-xs text-yellow-400">--</div>
+                            </div>
+                            <div class="bg-black/20 p-2 rounded">
+                                <div class="text-[10px] text-slate-500 uppercase">I<sub>D</sub></div>
+                                <div id="readout-id" class="math-font text-xs text-slate-200">-- mA</div>
+                            </div>
+                            <div class="bg-black/20 p-2 rounded">
+                                <div class="text-[10px] text-slate-500 uppercase">g<sub>m</sub></div>
+                                <div id="readout-gm" class="math-font text-xs text-slate-200">-- mS</div>
+                            </div>
+                            <div class="bg-black/20 p-2 rounded">
+                                <div class="text-[10px] text-slate-500 uppercase">g<sub>d</sub></div>
+                                <div id="readout-gd" class="math-font text-xs text-slate-200">-- mS</div>
+                            </div>
+                            <div class="bg-black/20 p-2 rounded">
+                                <div class="text-[10px] text-slate-500 uppercase">dI<sub>D</sub>/dV<sub>DS</sub></div>
+                                <div id="readout-slope" class="math-font text-xs text-slate-200">--</div>
+                            </div>
+                            <div class="bg-black/20 p-2 rounded">
+                                <div class="text-[10px] text-slate-500 uppercase">Pinch-off</div>
+                                <div id="readout-pinch" class="font-bold text-xs text-slate-200">--</div>
+                            </div>
+                            <div class="bg-black/20 p-2 rounded">
+                                <div class="text-[10px] text-slate-500 uppercase">Max g<sub>m</sub></div>
+                                <div id="readout-gm0" class="math-font text-xs text-slate-200">-- mS</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Exam Insights (Dynamic based on Graph Type) -->
+                <div>
+                    <div class="flex items-center gap-2 mb-3">
+                        <svg class="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                        <h2 class="text-sm font-bold text-slate-300 uppercase tracking-widest">Exam Insight</h2>
+                    </div>
+                    <div id="exam-insight-text" class="text-xs text-slate-400 leading-relaxed bg-yellow-900/10 border border-yellow-700/30 p-3 rounded-lg">
+                        Select a graph type to see relevant exam insights and interpretation tips.
+                    </div>
+                </div>
+
+                <!-- Educational Explanations (Accordions) -->
+                <div class="flex flex-col gap-2 mt-auto pb-4">
+                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Physics Concepts</h3>
+                    
+                    <div class="border border-slate-700 rounded bg-slate-800/50">
+                        <button class="accordion-btn w-full px-3 py-2 text-left text-xs font-bold text-slate-300 flex justify-between items-center hover:bg-slate-700 transition-colors rounded">
+                            <span>Pinch-off & Saturation</span>
+                            <span class="transform transition-transform duration-200">&#9662;</span>
+                        </button>
+                        <div class="accordion-content px-3 py-0 text-[11px] text-slate-400 leading-relaxed">
+                            <div class="pb-3 pt-1">
+                                • Increasing V<sub>DS</sub> increases reverse bias at the drain end of the gate junction.<br>
+                                • The depletion region expands most widely near the drain.<br>
+                                • When V<sub>DS</sub> = V<sub>GS</sub> - V<sub>p</sub>, the channel "pinches off" (width approaches zero).<br>
+                                • Further increases in V<sub>DS</sub> drop across the depleted region (ΔL), leaving current roughly constant.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border border-slate-700 rounded bg-slate-800/50">
+                        <button class="accordion-btn w-full px-3 py-2 text-left text-xs font-bold text-slate-300 flex justify-between items-center hover:bg-slate-700 transition-colors rounded">
+                            <span>Channel Length Modulation</span>
+                            <span class="transform transition-transform duration-200">&#9662;</span>
+                        </button>
+                        <div class="accordion-content px-3 py-0 text-[11px] text-slate-400 leading-relaxed">
+                            <div class="pb-3 pt-1">
+                                • In saturation, the pinch-off point moves towards the source as V<sub>DS</sub> increases.<br>
+                                • The effective channel length (L) decreases slightly (L - ΔL).<br>
+                                • Since resistance is proportional to length, shorter L means higher current.<br>
+                                • Modeled as I<sub>D</sub> = I<sub>D(ideal)</sub> * (1 + &lambda;V<sub>DS</sub>), creating a non-zero slope (output conductance, g<sub>d</sub>).
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="border border-slate-700 rounded bg-slate-800/50">
+                        <button class="accordion-btn w-full px-3 py-2 text-left text-xs font-bold text-slate-300 flex justify-between items-center hover:bg-slate-700 transition-colors rounded">
+                            <span>Velocity Saturation</span>
+                            <span class="transform transition-transform duration-200">&#9662;</span>
+                        </button>
+                        <div class="accordion-content px-3 py-0 text-[11px] text-slate-400 leading-relaxed">
+                            <div class="pb-3 pt-1">
+                                • At high electric fields (short channels), carrier velocity stops increasing linearly with field (mobility degrades).<br>
+                                • Velocity approaches a limit (v<sub>sat</sub>).<br>
+                                • Causes current to saturate at lower voltages and values than square-law predicts.<br>
+                                • Transfer curves become more linear rather than quadratic.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </aside>
+
+    </main>
+
+    <script>
+        /**
+         * Graph Laboratory Main Logic
+         * Enhanced with professional plotting, crosshair, overlays, and advanced analysis.
+         */
+
+        // --- 1. STATE MANAGEMENT ---
+        const state = {
+            device: 'n-jfet',
+            profMode: false,
+            curvesCount: 3,
+            params: {
+                idss: 10,
+                vp: -4,
+                lambda: 0,
+                vsat: 0,
+                baseVgs: 0,
+                baseVds: 10
+            },
+            axes: {
+                x: 'vds',
+                y: 'id'
+            },
+            eqMode: 'compact',
+            chartData: null,
+            lastEquationKey: null,
+            overlays: {
+                ideal: true,
+                lambda: false,
+                vsat: false,
+                sub: false,
+                exp: false
+            }
+        };
+
+        const dom = {};
+        function cacheDom() {
+            ['deviceSelect', 'profModeToggle', 'xAxisSelect', 'yAxisSelect', 'multiCurveSelect',
+                'slider-param1', 'slider-param2', 'slider-lambda', 'slider-vsat',
+                'slider-op-vgs', 'slider-op-vds',
+                'lbl-param1', 'val-param1', 'lbl-param2', 'val-param2', 'val-lambda', 'val-vsat',
+                'val-op-vgs', 'val-op-vds', 'container-op-vgs', 'container-op-vds',
+                'profBanner', 'readout-device', 'readout-equation', 'eq-region-badge',
+                'eq-mathjax-target', 'eq-exam-defs', 'eq-derivation', 'eq-meaning',
+                'readout-vdssat', 'readout-region', 'readout-id', 'readout-gm', 'readout-gd',
+                'readout-slope', 'readout-pinch', 'readout-gm0',
+                'graphTitle', 'exam-insight-text', 'mainChart'
+            ].forEach(id => { dom[id] = document.getElementById(id); });
+            // Overlay checkboxes
+            ['overlay-ideal', 'overlay-lambda', 'overlay-vsat', 'overlay-sub', 'overlay-exp'].forEach(id => {
+                dom[id] = document.getElementById(id);
+            });
+        }
+
+        // --- 2. PHYSICS ENGINE ---
+        function getSignConventions() {
+            let vdsSign = 1, vgsSign = 1, idSign = 1;
+            if (state.device === 'p-jfet') {
+                vdsSign = -1;
+                vgsSign = 1;
+                idSign = -1;
+            }
+            return { vdsSign, vgsSign, idSign };
+        }
+
+        function calculateID(vgs, vds) {
+            const { idss, vp, lambda, vsat } = state.params;
+            let id = 0;
+            let region = 'cutoff';
+            let vds_sat = 0;
+
+            const isPChannel = state.device === 'p-jfet';
+            let vgs_eff = vgs;
+            let vds_eff = vds;
+            let vp_eff = vp;
+            let kn_eff = idss;
+
+            if (isPChannel) {
+                vgs_eff = -vgs;
+                vds_eff = -vds;
+                vp_eff = -vp;
+            }
+
+            const isEnhancement = ['n-enh-mesfet', 'hemt'].includes(state.device);
+
+            if (isEnhancement) {
+                vds_sat = vgs_eff - vp_eff;
+                if (vgs_eff < vp_eff) {
+                    id = 0;
+                    region = 'cutoff';
+                } else {
+                    if (vds_eff < vds_sat) {
+                        region = 'linear';
+                        id = kn_eff * (2 * (vgs_eff - vp_eff) * vds_eff - Math.pow(vds_eff, 2));
+                    } else {
+                        region = 'saturation';
+                        id = kn_eff * Math.pow(vgs_eff - vp_eff, 2);
+                    }
+                }
+            } else {
+                vds_sat = vgs_eff - vp_eff;
+                if (vgs_eff <= vp_eff) {
+                    id = 0;
+                    region = 'cutoff';
+                } else {
+                    if (vds_eff < vds_sat) {
+                        region = 'linear';
+                        id = (2 * idss / Math.pow(vp_eff, 2)) * ((vgs_eff - vp_eff) * vds_eff - (Math.pow(vds_eff, 2) / 2));
+                    } else {
+                        region = 'saturation';
+                        id = idss * Math.pow(1 - (vgs_eff / vp_eff), 2);
+                    }
+                }
+            }
+
+            // Channel Length Modulation (only in saturation)
+            if (region === 'saturation') {
+                id = id * (1 + lambda * Math.max(0, vds_eff));
+            }
+
+            // Velocity Saturation (empirical)
+            if (vsat > 0 && region !== 'cutoff') {
+                id = id / (1 + (vsat * Math.max(0, vds_eff)));
+            }
+
+            // Subthreshold leakage (exponential below cutoff)
+            if (region === 'cutoff') {
+                const VT_THERMAL = 0.02585;
+                const n = 1.5;
+                const refScale = isEnhancement ? kn_eff : (idss / Math.pow(vp_eff, 2));
+                const iRef = Math.max(refScale, 1e-6) * 1e-3;
+                id = iRef * Math.exp((vgs_eff - vp_eff) / (n * VT_THERMAL));
+            }
+
+            if (isPChannel) {
+                id = -id;
+                vds_sat = -vds_sat;
+            }
+
+            return { id, region, vds_sat };
+        }
+
+        // Equation library (same as before, enhanced with gm/ID)
+        const EQUATION_LIB = {
+            depletion: {
+                cutoff: {
+                    compact: `$$I_D = 0 \\qquad (V_{GS}\\le V_P)$$`,
+                    exam: `$V_P$ — pinch-off voltage; gate junction depletion fully closes the channel.`,
+                    derivation: `Below pinch-off the channel is fully depleted, so no drift path remains for majority carriers.`,
+                    meaning: `Gate-channel depletion region has pinched the channel completely shut; only a small exponential subthreshold leakage remains (see log plot).`
+                },
+                linear: {
+                    compact: `$$I_D=\\frac{2I_{DSS}}{V_P^2}\\left[(V_{GS}-V_P)V_{DS}-\\frac{V_{DS}^2}{2}\\right]$$`,
+                    exam: `$I_{DSS}$ — drain current at $V_{GS}=0$, $V_{DS}\\ge|V_P|$ &nbsp;•&nbsp; $V_P$ — pinch-off voltage &nbsp;•&nbsp; $V_{DS}$ — drain-source voltage`,
+                    derivation: `Derived by integrating the depletion-width-weighted channel conductance $g(y)$ along the channel from source to drain for $0 \\le V_{DS} < V_{DS(sat)}$.`,
+                    meaning: `Channel behaves as a voltage-controlled resistor: current depends on both V_GS and V_DS because the channel is not yet pinched off.`
+                },
+                saturation: {
+                    compact: `$$I_D=I_{DSS}\\left(1-\\frac{V_{GS}}{V_P}\\right)^2(1+\\lambda V_{DS})$$`,
+                    exam: `$I_{DSS}$ — saturation current at $V_{GS}=0$ &nbsp;•&nbsp; $V_P$ — pinch-off voltage &nbsp;•&nbsp; $\\lambda$ — channel-length modulation coefficient`,
+                    derivation: `$$V_{DS(sat)}=V_{GS}-V_P$$ Setting $V_{DS}=V_{DS(sat)}$ in the linear-region relation and simplifying yields the square-law saturation current; the $(1+\\lambda V_{DS})$ factor is added afterward to model finite output resistance.`,
+                    meaning: `Channel has pinched off at the drain end; current is controlled almost entirely by V_GS (square law), with a small residual slope from channel-length modulation.`
+                }
+            },
+            enhancement: {
+                cutoff: {
+                    compact: `$$I_D = 0 \\qquad (V_{GS} < V_T)$$`,
+                    exam: `$V_T$ — threshold voltage; below this, no inversion/2-DEG channel exists.`,
+                    derivation: `No conducting channel has formed yet; carrier concentration under the gate is too low to support drift current.`,
+                    meaning: `Gate voltage hasn't yet induced a conducting channel (or 2-DEG, for HEMT); only exponential subthreshold leakage flows.`
+                },
+                linear: {
+                    compact: `$$I_D=k_n\\left[2(V_{GS}-V_T)V_{DS}-V_{DS}^2\\right]$$`,
+                    exam: `$k_n$ — conduction parameter (process transconductance) &nbsp;•&nbsp; $V_T$ — threshold voltage &nbsp;•&nbsp; $V_{DS}$ — drain-source voltage`,
+                    derivation: `Same channel-conductance integration as the depletion case, but with the induced-charge threshold $V_T>0$ replacing the built-in pinch-off voltage $V_P$.`,
+                    meaning: `Channel resistance is set by the gate overdrive (V_GS-V_T); current still depends on V_DS since the channel isn't pinched off.`
+                },
+                saturation: {
+                    compact: `$$I_D=k_n(V_{GS}-V_T)^2(1+\\lambda V_{DS})$$`,
+                    exam: `$k_n$ — conduction parameter &nbsp;•&nbsp; $V_T$ — threshold voltage &nbsp;•&nbsp; $\\lambda$ — channel-length modulation coefficient`,
+                    derivation: `$$V_{DS(sat)}=V_{GS}-V_T$$ Substituting into the triode relation and simplifying gives the square-law form; $(1+\\lambda V_{DS})$ again accounts for finite output resistance.`,
+                    meaning: `Pinched-off channel; current controlled by gate overdrive squared. For HEMT devices this tracks the 2-DEG sheet-charge control law below.`
+                }
+            },
+            hemtChargeControl: `$$n_s=\\frac{\\varepsilon}{qd}\\left(V_{GS}-V_{TH}\\right)$$ 2-DEG sheet-charge density under the gate (charge-control model); $I_D \\propto q\\,n_s\\,v\\,W$ reduces to the $k_n(V_{GS}-V_T)^2$ form above under the gradual-channel approximation.`
+        };
+
+        let mathJaxReady = false;
+        let equationRenderPending = false;
+        function requestMathJaxRender() {
+            if (mathJaxReady) {
+                doMathJaxRender();
+            } else {
+                equationRenderPending = true;
+            }
+        }
+        function doMathJaxRender() {
+            window.MathJax.startup.promise
+                .then(() => window.MathJax.typesetPromise([dom['readout-equation']]))
+                .catch(err => console.error('MathJax render error:', err));
+        }
+        function onMathJaxLoaded() {
+            mathJaxReady = true;
+            if (equationRenderPending) {
+                equationRenderPending = false;
+                doMathJaxRender();
+            }
+        }
+        if (window.MathJax && window.MathJax.startup) {
+            onMathJaxLoaded();
+        } else {
+            const mjScript = document.getElementById('MathJax-script');
+            if (mjScript) mjScript.addEventListener('load', onMathJaxLoaded);
+        }
+
+        function setEquation(region, family, device) {
+            const entry = EQUATION_LIB[family][region];
+            const mode = state.eqMode;
+            const key = `${family}|${region}|${mode}|${device}`;
+            const changed = key !== state.lastEquationKey;
+            state.lastEquationKey = key;
+
+            dom['eq-region-badge'].textContent = region.charAt(0).toUpperCase() + region.slice(1) + ' Region';
+
+            let mainLatex = entry.compact;
+            if (device === 'hemt' && region !== 'cutoff' && mode === 'derivation') {
+                mainLatex += EQUATION_LIB.hemtChargeControl;
+            }
+            dom['eq-mathjax-target'].innerHTML = mainLatex;
+
+            const examBox = dom['eq-exam-defs'];
+            const derivBox = dom['eq-derivation'];
+            if (mode === 'exam') {
+                examBox.innerHTML = entry.exam;
+                examBox.classList.remove('hidden');
+                derivBox.classList.add('hidden');
+            } else if (mode === 'derivation') {
+                derivBox.innerHTML = entry.derivation;
+                derivBox.classList.remove('hidden');
+                examBox.classList.add('hidden');
+            } else {
+                examBox.classList.add('hidden');
+                derivBox.classList.add('hidden');
+            }
+
+            dom['eq-meaning'].textContent = entry.meaning;
+
+            if (changed) {
+                requestMathJaxRender();
+            }
+        }
+
+        // --- 3. CHART.JS SETUP WITH CROSSHAIR PLUGIN ---
+        let mainChart;
+
+        // Custom crosshair plugin
+        const crosshairPlugin = {
+            id: 'crosshair',
+            afterDraw: function(chart) {
+                const tooltip = chart.tooltip;
+                if (!tooltip || !tooltip._active || tooltip._active.length === 0) {
+                    // Remove crosshair lines if no tooltip active
+                    const canvas = chart.canvas;
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    return;
+                }
+                const active = tooltip._active[0];
+                const x = active.element.x;
+                const y = active.element.y;
+                const ctx = chart.ctx;
+                const xScale = chart.scales.x;
+                const yScale = chart.scales.y;
+
+                ctx.save();
+                ctx.strokeStyle = 'rgba(56, 189, 248, 0.5)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(x, yScale.top);
+                ctx.lineTo(x, yScale.bottom);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(xScale.left, y);
+                ctx.lineTo(xScale.right, y);
+                ctx.stroke();
+
+                // Draw coordinate label
+                const dataPoint = active.element.$context.raw;
+                if (dataPoint) {
+                    const xVal = dataPoint.x;
+                    const yVal = dataPoint.y;
+                    ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
+                    ctx.fillRect(x - 40, y - 25, 80, 20);
+                    ctx.fillStyle = '#e2e8f0';
+                    ctx.font = '10px JetBrains Mono';
+                    ctx.fillText(`x: ${xVal.toFixed(3)}, y: ${yVal.toFixed(3)}`, x - 35, y - 10);
+                }
+                ctx.restore();
+            }
+        };
+
+        // Math grid lines plugin (already present, we'll keep it)
+
+        function initChart() {
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            const colors = ['#38bdf8', '#a78bfa', '#34d399', '#f472b6', '#fbbf24'];
+
+            mainChart = new Chart(ctx, {
+                type: 'line',
+                plugins: [crosshairPlugin],
+                data: { datasets: [] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 600, easing: 'easeOutQuart' },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    },
+                    elements: {
+                        line: { tension: 0.2, borderWidth: 2 },
+                        point: { radius: 0, hitRadius: 10, hoverRadius: 6 }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            grid: { color: 'rgba(51, 65, 85, 0.4)', tickColor: 'rgba(51, 65, 85, 0.5)' },
+                            ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 11 } },
+                            title: { display: true, text: 'X Axis', color: '#cbd5e1', font: { size: 12, weight: 'bold' } }
+                        },
+                        y: {
+                            type: 'linear',
+                            grid: { color: 'rgba(51, 65, 85, 0.4)', tickColor: 'rgba(51, 65, 85, 0.5)' },
+                            ticks: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 11 } },
+                            title: { display: true, text: 'Y Axis', color: '#cbd5e1', font: { size: 12, weight: 'bold' } }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            align: 'end',
+                            labels: { color: '#e2e8f0', usePointStyle: true, boxWidth: 8, font: { size: 11 } }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            titleColor: '#38bdf8',
+                            bodyColor: '#e2e8f0',
+                            borderColor: '#334155',
+                            borderWidth: 1,
+                            padding: 10,
+                            displayColors: true,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) { label += ': '; }
+                                    if (context.parsed.y !== null) {
+                                        label += context.parsed.y.toFixed(3);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- 4. DATA GENERATION ---
+        function generateData() {
+            const { x: xAxisType, y: yAxisType } = state.axes;
+            const datasets = [];
+            const csvData = [];
+            
+            let isSweepVds = ['vds', 'vds-norm'].includes(xAxisType);
+            let xValues = [];
+            if (isSweepVds) {
+                const isP = (state.device === 'p-jfet');
+                const vdsMax = 20;
+                const step = 0.5;
+                for (let v = 0; v <= vdsMax; v += step) {
+                    xValues.push(isP ? -v : v);
+                }
+            } else {
+                const vp = state.params.vp;
+                let vgsStart = -10, vgsEnd = 5;
+                if (state.device === 'n-jfet' || state.device === 'n-dep-mesfet') {
+                    vgsStart = vp - 2;
+                    vgsEnd = 1;
+                } else if (state.device === 'p-jfet') {
+                    vgsStart = -1;
+                    vgsEnd = vp + 2;
+                } else {
+                    vgsStart = vp - 1;
+                    vgsEnd = vp + 5;
+                }
+                const step = (vgsEnd - vgsStart) / 100;
+                for (let v = vgsStart; v <= vgsEnd; v += step) {
+                    xValues.push(v);
+                }
+            }
+
+            let curveValues = [];
+            if (isSweepVds) {
+                let baseVgs = state.params.baseVgs;
+                let stepSize = state.device === 'p-jfet' ? 1 : -1;
+                if (['n-enh-mesfet', 'hemt'].includes(state.device)) stepSize = 1;
+                for (let i = 0; i < state.curvesCount; i++) {
+                    curveValues.push(baseVgs + (i * stepSize));
+                }
+            } else {
+                let baseVds = state.params.baseVds;
+                if (state.curvesCount === 1) {
+                    curveValues = [baseVds];
+                } else {
+                    for (let i = 0; i < state.curvesCount; i++) {
+                        curveValues.push(baseVds + (i * 2 * (state.device==='p-jfet'?-1:1)));
+                    }
+                }
+            }
+
+            const colors = ['#38bdf8', '#a78bfa', '#34d399', '#f472b6', '#fbbf24'];
+
+            // Helper to compute plotY from raw ID and other params
+            function computePlotY(rawId, vgs, vds, region) {
+                let plotY = rawId;
+                if (yAxisType === 'sqrt_id') {
+                    plotY = Math.sign(rawId) * Math.sqrt(Math.abs(rawId));
+                } else if (yAxisType === 'id_sq') {
+                    plotY = Math.pow(rawId, 2);
+                } else if (yAxisType === 'log_id') {
+                    let absId = Math.abs(rawId);
+                    plotY = absId > 1e-6 ? Math.log10(absId) : -6;
+                } else if (yAxisType === 'id_norm') {
+                    plotY = rawId / state.params.idss;
+                } else if (yAxisType === 'gm') {
+                    let delta = 0.001;
+                    let id_up = calculateID(vgs + delta, vds).id;
+                    plotY = (id_up - rawId) / delta;
+                } else if (yAxisType === 'gd') {
+                    let delta = 0.001;
+                    let id_up = calculateID(vgs, vds + delta).id;
+                    plotY = (id_up - rawId) / delta;
+                } else if (yAxisType === 'gm_id') {
+                    let gm_val = 0;
+                    let delta = 0.001;
+                    let id_up = calculateID(vgs + delta, vds).id;
+                    gm_val = (id_up - rawId) / delta;
+                    plotY = Math.abs(rawId) > 1e-9 ? gm_val / rawId : 0;
+                }
+                return plotY;
+            }
+
+            curveValues.forEach((curveVal, index) => {
+                let dataPoints = [];
+                let color = colors[index % colors.length];
+                let label = isSweepVds ? `Vgs = ${curveVal.toFixed(1)}V` : `Vds = ${curveVal.toFixed(1)}V`;
+
+                xValues.forEach(xVal => {
+                    let vgs_in = isSweepVds ? curveVal : xVal;
+                    let vds_in = isSweepVds ? xVal : curveVal;
+
+                    const phys = calculateID(vgs_in, vds_in);
+                    let raw_id = phys.id;
+                    let vds_sat = phys.vds_sat;
+
+                    let plotX = xVal;
+                    if (xAxisType === 'vgs-vt') {
+                        plotX = vgs_in - state.params.vp;
+                    } else if (xAxisType === 'vds-norm' && vds_sat !== 0) {
+                        plotX = vds_in / vds_sat;
+                    }
+
+                    let plotY = computePlotY(raw_id, vgs_in, vds_in, phys.region);
+
+                    // Professor Mode override
+                    if (state.profMode && state.device === 'p-jfet') {
+                        if (['vds', 'vds-norm'].includes(xAxisType)) plotX = -plotX;
+                        if (['id', 'sqrt_id', 'id_norm'].includes(yAxisType)) plotY = -plotY;
+                    }
+
+                    dataPoints.push({ x: plotX, y: plotY, physRegion: phys.region, physVdssat: vds_sat });
+                });
+
+                datasets.push({
+                    label: label,
+                    data: dataPoints,
+                    borderColor: color,
+                    backgroundColor: color,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 5
+                });
+            });
+
+            // Overlays: we'll generate additional datasets with modified parameters
+            const overlays = state.overlays;
+            if (overlays.ideal || overlays.lambda || overlays.vsat || overlays.sub || overlays.exp) {
+                // We'll generate separate datasets for each overlay type with dashed lines
+                // For simplicity, we'll overlay on the first curve family (index 0) if present.
+                if (datasets.length > 0) {
+                    const baseData = datasets[0].data;
+                    const baseX = baseData.map(p => p.x);
+                    const baseY = baseData.map(p => p.y);
+                    const baseRegion = baseData.map(p => p.physRegion);
+
+                    // Function to generate overlay data with specific params
+                    function generateOverlayData(label, paramsOverride, color, dash) {
+                        const { idss, vp, lambda, vsat } = state.params;
+                        // Temporarily override params
+                        const origParams = { ...state.params };
+                        Object.assign(state.params, paramsOverride);
+
+                        const newData = xValues.map((xVal, i) => {
+                            let vgs_in = isSweepVds ? curveValues[0] : xVal;
+                            let vds_in = isSweepVds ? xVal : curveValues[0];
+                            const phys = calculateID(vgs_in, vds_in);
+                            let raw_id = phys.id;
+                            let plotX = xVal;
+                            if (xAxisType === 'vgs-vt') {
+                                plotX = vgs_in - state.params.vp;
+                            } else if (xAxisType === 'vds-norm' && phys.vds_sat !== 0) {
+                                plotX = vds_in / phys.vds_sat;
+                            }
+                            let plotY = computePlotY(raw_id, vgs_in, vds_in, phys.region);
+                            if (state.profMode && state.device === 'p-jfet') {
+                                if (['vds', 'vds-norm'].includes(xAxisType)) plotX = -plotX;
+                                if (['id', 'sqrt_id', 'id_norm'].includes(yAxisType)) plotY = -plotY;
+                            }
+                            return { x: plotX, y: plotY, physRegion: phys.region };
+                        });
+
+                        // Restore original params
+                        state.params = origParams;
+
+                        return {
+                            label: label,
+                            data: newData,
+                            borderColor: color,
+                            backgroundColor: color,
+                            borderWidth: 1.5,
+                            borderDash: dash || [5, 5],
+                            pointRadius: 0,
+                            pointHoverRadius: 3
+                        };
+                    }
+
+                    // Define overlay configurations
+                    const overlayConfigs = [];
+                    if (overlays.ideal) {
+                        overlayConfigs.push({
+                            label: 'Ideal (λ=0, α=0)',
+                            params: { idss: state.params.idss, vp: state.params.vp, lambda: 0, vsat: 0 },
+                            color: '#94a3b8',
+                            dash: [4, 4]
+                        });
+                    }
+                    if (overlays.lambda) {
+                        overlayConfigs.push({
+                            label: 'With λ only',
+                            params: { idss: state.params.idss, vp: state.params.vp, lambda: state.params.lambda, vsat: 0 },
+                            color: '#f472b6',
+                            dash: [6, 3]
+                        });
+                    }
+                    if (overlays.vsat) {
+                        overlayConfigs.push({
+                            label: 'With α only',
+                            params: { idss: state.params.idss, vp: state.params.vp, lambda: 0, vsat: state.params.vsat },
+                            color: '#34d399',
+                            dash: [2, 4]
+                        });
+                    }
+                    if (overlays.sub) {
+                        overlayConfigs.push({
+                            label: 'Subthreshold (exp)',
+                            params: { idss: state.params.idss, vp: state.params.vp, lambda: 0, vsat: 0 },
+                            color: '#fbbf24',
+                            dash: [1, 2]
+                        });
+                    }
+                    if (overlays.exp) {
+                        overlayConfigs.push({
+                            label: 'Experimental (noise)',
+                            params: { idss: state.params.idss, vp: state.params.vp, lambda: state.params.lambda, vsat: state.params.vsat },
+                            color: '#fb923c',
+                            dash: [3, 6]
+                        });
+                        // For experimental, we'll add noise to the data (we'll modify the dataset directly later)
+                        // We'll handle it by post-processing.
+                    }
+
+                    overlayConfigs.forEach(cfg => {
+                        const ds = generateOverlayData(cfg.label, cfg.params, cfg.color, cfg.dash);
+                        datasets.push(ds);
+                    });
+
+                    // Experimental noise: we'll add a separate dataset with jitter
+                    if (overlays.exp) {
+                        // Create a copy of the first dataset with noise
+                        const noisyData = datasets[0].data.map(p => ({
+                            x: p.x,
+                            y: p.y + (Math.random() - 0.5) * 0.2 * Math.abs(p.y || 0.01),
+                            physRegion: p.physRegion
+                        }));
+                        datasets.push({
+                            label: 'Experimental (noise)',
+                            data: noisyData,
+                            borderColor: '#fb923c',
+                            backgroundColor: '#fb923c',
+                            borderWidth: 1.5,
+                            borderDash: [2, 4],
+                            pointRadius: 1,
+                            pointBackgroundColor: '#fb923c',
+                            pointHoverRadius: 4
+                        });
+                    }
+                }
+            }
+
+            state.chartData = { datasets, xAxisType, yAxisType };
+            return datasets;
+        }
+
+        // --- 5. UPDATE ALL ---
+        function updateAll() {
+            // Gather inputs
+            state.device = dom.deviceSelect.value;
+            state.profMode = dom.profModeToggle.checked;
+            state.axes.x = dom.xAxisSelect.value;
+            state.axes.y = dom.yAxisSelect.value;
+            state.curvesCount = parseInt(dom.multiCurveSelect.value);
+
+            state.params.idss = parseFloat(dom['slider-param1'].value);
+            state.params.vp = parseFloat(dom['slider-param2'].value);
+            state.params.lambda = parseFloat(dom['slider-lambda'].value);
+            state.params.vsat = parseFloat(dom['slider-vsat'].value);
+            state.params.baseVgs = parseFloat(dom['slider-op-vgs'].value);
+            state.params.baseVds = parseFloat(dom['slider-op-vds'].value);
+
+            // Overlays
+            state.overlays.ideal = dom['overlay-ideal'].checked;
+            state.overlays.lambda = dom['overlay-lambda'].checked;
+            state.overlays.vsat = dom['overlay-vsat'].checked;
+            state.overlays.sub = dom['overlay-sub'].checked;
+            state.overlays.exp = dom['overlay-exp'].checked;
+
+            // Adjust labels
+            const isEnhancement = ['n-enh-mesfet', 'hemt'].includes(state.device);
+            dom['lbl-param1'].innerHTML = isEnhancement ? 'k<sub>n</sub> (Trans. Param)' : 'I<sub>DSS</sub> (Max Current)';
+            dom['val-param1'].innerText = state.params.idss.toFixed(2) + (isEnhancement ? ' mA/V²' : ' mA');
+            dom['lbl-param2'].innerHTML = isEnhancement ? 'V<sub>T</sub> (Threshold)' : 'V<sub>p</sub> (Pinch-off)';
+            dom['val-param2'].innerText = state.params.vp.toFixed(2) + ' V';
+            dom['val-lambda'].innerText = state.params.lambda.toFixed(3) + ' V⁻¹';
+            dom['val-vsat'].innerText = state.params.vsat.toFixed(3);
+            dom['val-op-vgs'].innerText = state.params.baseVgs.toFixed(1) + ' V';
+            dom['val-op-vds'].innerText = state.params.baseVds.toFixed(1) + ' V';
+
+            // Show/hide op sliders
+            if (['vds', 'vds-norm'].includes(state.axes.x)) {
+                dom['container-op-vgs'].classList.remove('hidden');
+                dom['container-op-vds'].classList.add('hidden');
+            } else {
+                dom['container-op-vgs'].classList.add('hidden');
+                dom['container-op-vds'].classList.remove('hidden');
+            }
+
+            // Professor Mode Banner
+            const profBanner = dom.profBanner;
+            if (state.profMode) {
+                document.body.classList.add('prof-mode-active');
+                if (state.device === 'p-jfet') {
+                    profBanner.classList.remove('hidden');
+                    profBanner.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>P-CHANNEL ACTIVE: POLARITIES REVERSED FOR PLOTTING`;
+                } else {
+                     profBanner.classList.remove('hidden');
+                     profBanner.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>Prof Mode: Standard display for N-channel`;
+                }
+            } else {
+                document.body.classList.remove('prof-mode-active');
+                profBanner.classList.add('hidden');
+            }
+
+            // Update readouts
+            dom['readout-device'].innerText = dom.deviceSelect.options[dom.deviceSelect.selectedIndex].text;
+
+            // Compute operating point
+            const opPhys = calculateID(state.params.baseVgs, state.params.baseVds);
+            const family = isEnhancement ? 'enhancement' : 'depletion';
+            setEquation(opPhys.region, family, state.device);
+
+            dom['readout-vdssat'].innerText = opPhys.vds_sat.toFixed(2) + ' V';
+
+            const regionSpan = dom['readout-region'];
+            regionSpan.innerText = opPhys.region.toUpperCase();
+            if(opPhys.region === 'saturation') regionSpan.className = 'font-bold text-xs text-green-400';
+            else if(opPhys.region === 'linear') regionSpan.className = 'font-bold text-xs text-yellow-400';
+            else regionSpan.className = 'font-bold text-xs text-red-400';
+
+            // Compute ID, gm, gd at operating point
+            const id = opPhys.id;
+            dom['readout-id'].innerText = id.toFixed(3) + ' mA';
+            let gm = 0;
+            let gd = 0;
+            if (opPhys.region !== 'cutoff') {
+                let delta = 0.001;
+                let id_up_vgs = calculateID(state.params.baseVgs + delta, state.params.baseVds).id;
+                gm = (id_up_vgs - id) / delta;
+                let id_up_vds = calculateID(state.params.baseVgs, state.params.baseVds + delta).id;
+                gd = (id_up_vds - id) / delta;
+            }
+            dom['readout-gm'].innerText = gm.toFixed(2) + ' mS';
+            dom['readout-gd'].innerText = gd.toFixed(2) + ' mS';
+
+            // Slope dID/dVDS = gd
+            dom['readout-slope'].innerText = gd.toFixed(2) + ' mS';
+
+            // Pinch-off status
+            const pinchActive = opPhys.region === 'saturation' && (state.device !== 'p-jfet' ? state.params.baseVds > opPhys.vds_sat : state.params.baseVds < opPhys.vds_sat);
+            dom['readout-pinch'].innerText = pinchActive ? 'ACTIVE' : 'INACTIVE';
+            dom['readout-pinch'].className = 'font-bold text-xs ' + (pinchActive ? 'text-red-400' : 'text-slate-400');
+
+            // gm0
+            let gm0 = 0;
+            if (!isEnhancement) {
+                gm0 = (2 * state.params.idss) / Math.abs(state.params.vp);
+            }
+            dom['readout-gm0'].innerText = gm0 > 0 ? gm0.toFixed(2) + ' mS' : 'N/A';
+
+            // Generate data and update chart
+            const datasets = generateData();
+            mainChart.data.datasets = datasets;
+
+            // Axis labels
+            const xLabelMap = {'vds': 'Drain-Source Voltage (V)', 'vgs': 'Gate-Source Voltage (V)', 'vgs-vt': 'Overdrive Voltage (V)', 'vds-norm': 'VDS / VDS(sat)'};
+            const yLabelMap = {
+                'id': 'Drain Current (mA)',
+                'sqrt_id': 'Sqrt(ID) (√mA)',
+                'id_sq': 'ID² (mA²)',
+                'log_id': 'log10(|ID|)',
+                'id_norm': 'ID / IDSS',
+                'gm': 'Transconductance gm (mS)',
+                'gd': 'Output Conductance gd (mS)',
+                'gm_id': 'gm / ID (1/V)'
+            };
+            let xTitle = xLabelMap[state.axes.x];
+            let yTitle = yLabelMap[state.axes.y];
+
+            if (state.profMode && state.device === 'p-jfet') {
+                if (['vds', 'vds-norm'].includes(state.axes.x)) xTitle = '|' + xTitle + '| (Reversed)';
+                if (['id', 'sqrt_id'].includes(state.axes.y)) yTitle = '|' + yTitle + '| (Reversed)';
+            }
+            mainChart.options.scales.x.title.text = xTitle;
+            mainChart.options.scales.y.title.text = yTitle;
+
+            dom.graphTitle.innerHTML = `Analysis: ${dom.yAxisSelect.options[dom.yAxisSelect.selectedIndex].text} vs ${dom.xAxisSelect.options[dom.xAxisSelect.selectedIndex].text}`;
+
+            updateExamInsight();
+            mainChart.update();
+        }
+
+        function updateExamInsight() {
+            const insightBox = dom['exam-insight-text'];
+            const { x, y } = state.axes;
+            
+            let html = "";
+            if (x === 'vds' && y === 'id') {
+                html = "<strong>Drain Characteristics:</strong> Notice the distinct linear (ohmic) region near origin and saturation (active) region. The transition point is V<sub>DS(sat)</sub> = V<sub>GS</sub> - V<sub>P</sub>. A non-zero slope in saturation indicates Channel Length Modulation (&lambda;).";
+            } else if (x === 'vgs' && y === 'id') {
+                html = "<strong>Transfer Characteristics:</strong> This shows the non-linear control of I<sub>D</sub> by V<sub>GS</sub>. For JFETs, this follows a square-law model. Pinch-off occurs where the curve hits the X-axis.";
+            } else if (x === 'vgs' && y === 'sqrt_id') {
+                html = "<strong>Linearization (√I<sub>D</sub>):</strong> Taking the square root of current linearizes the ideal square-law transfer curve. <strong>Exam Trick:</strong> Extrapolating this straight line to the X-axis accurately finds V<sub>p</sub> or V<sub>T</sub>. The slope is proportional to &radic;I<sub>DSS</sub> / |V<sub>p</sub>|.";
+            } else if (y === 'log_id') {
+                html = "<strong>Subthreshold / Log Plot:</strong> Shows behavior near and below threshold. In real devices (not fully modeled by simple square-law), current doesn't drop instantly to zero but follows an exponential subthreshold swing, creating a straight line on a semi-log plot.";
+            } else if (y === 'gm') {
+                html = "<strong>Transconductance (g<sub>m</sub>):</strong> Represents the gain of the device. g<sub>m</sub> is highest near V<sub>GS</sub> = 0 (for depletion devices) and drops linearly to zero as V<sub>GS</sub> approaches V<sub>p</sub>.";
+            } else {
+                html = "Custom transformation active. Analyze the slopes and intercepts based on core FET equations.";
+            }
+
+            if (state.profMode && state.device === 'p-jfet') {
+                html += "<br><br><span class='text-red-400 font-bold'>Warning:</span> P-channel graph visually inverted to 1st quadrant for n-channel analogy. Mathematically, current and voltage directions are reversed.";
+            }
+
+            insightBox.innerHTML = html;
+        }
+
+        // --- 6. EVENT LISTENERS ---
+        let updateQueued = false;
+        function requestUpdate() {
+            if (updateQueued) return;
+            updateQueued = true;
+            requestAnimationFrame(() => {
+                updateQueued = false;
+                updateAll();
+            });
+        }
+
+        function setupEventListeners() {
+            const inputs = [
+                'profModeToggle', 'xAxisSelect', 'yAxisSelect', 'multiCurveSelect',
+                'slider-param1', 'slider-param2', 'slider-lambda', 'slider-vsat',
+                'slider-op-vgs', 'slider-op-vds'
+            ];
+            inputs.forEach(id => {
+                dom[id].addEventListener('input', requestUpdate);
+            });
+
+            // Overlay checkboxes
+            ['overlay-ideal', 'overlay-lambda', 'overlay-vsat', 'overlay-sub', 'overlay-exp'].forEach(id => {
+                dom[id].addEventListener('change', requestUpdate);
+            });
+
+            // Equation mode
+            document.querySelectorAll('.eq-mode-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    state.eqMode = btn.dataset.mode;
+                    document.querySelectorAll('.eq-mode-btn').forEach(b =>
+                        b.classList.toggle('bg-blue-600', b === btn));
+                    state.lastEquationKey = null;
+                    requestUpdate();
+                });
+            });
+            document.querySelector('.eq-mode-btn[data-mode="compact"]').classList.add('bg-blue-600');
+
+            // Presets
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const preset = e.target.dataset.preset;
+                    if (preset === 'drain') {
+                        dom.xAxisSelect.value = 'vds';
+                        dom.yAxisSelect.value = 'id';
+                    } else if (preset === 'transfer') {
+                        dom.xAxisSelect.value = 'vgs';
+                        dom.yAxisSelect.value = 'id';
+                        dom.multiCurveSelect.value = "1";
+                    } else if (preset === 'linear') {
+                        dom.xAxisSelect.value = 'vgs';
+                        dom.yAxisSelect.value = 'sqrt_id';
+                        dom.multiCurveSelect.value = "1";
+                    } else if (preset === 'gm') {
+                        dom.xAxisSelect.value = 'vgs';
+                        dom.yAxisSelect.value = 'gm';
+                        dom.multiCurveSelect.value = "1";
+                    }
+                    updateAll();
+                });
+            });
+
+            // Accordion
+            document.querySelectorAll('.accordion-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    this.classList.toggle('active');
+                    const content = this.nextElementSibling;
+                    const arrow = this.querySelector('span:last-child');
+                    if (content.classList.contains('open')) {
+                        content.classList.remove('open');
+                        arrow.style.transform = "rotate(0deg)";
+                    } else {
+                        content.classList.add('open');
+                        arrow.style.transform = "rotate(180deg)";
+                    }
+                });
+            });
+
+            // Export PNG
+            document.getElementById('btn-export-png').addEventListener('click', () => {
+                const link = document.createElement('a');
+                link.download = 'jfet-graph.png';
+                link.href = document.getElementById('mainChart').toDataURL('image/png');
+                link.click();
+            });
+
+            // Export CSV
+            document.getElementById('btn-export-csv').addEventListener('click', () => {
+                if (!state.chartData) return;
+                let csvContent = "data:text/csv;charset=utf-8,";
+                let headers = ["X (" + state.chartData.xAxisType + ")"];
+                state.chartData.datasets.forEach(ds => headers.push(ds.label));
+                csvContent += headers.join(",") + "\r\n";
+
+                const numPoints = state.chartData.datasets[0].data.length;
+                for (let i = 0; i < numPoints; i++) {
+                    let row = [state.chartData.datasets[0].data[i].x.toFixed(4)];
+                    state.chartData.datasets.forEach(ds => {
+                        row.push(ds.data[i].y.toFixed(4));
+                    });
+                    csvContent += row.join(",") + "\r\n";
+                }
+
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "jfet_data.csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+
+            // Reset view: re-run update with current settings (Chart.js auto-scales)
+            document.getElementById('btn-reset-view').addEventListener('click', () => {
+                mainChart.options.scales.x.min = undefined;
+                mainChart.options.scales.x.max = undefined;
+                mainChart.options.scales.y.min = undefined;
+                mainChart.options.scales.y.max = undefined;
+                updateAll();
+            });
+
+            // Device change: adjust slider ranges
+            dom.deviceSelect.addEventListener('change', (e) => {
+                const dev = e.target.value;
+                const vSlider = dom['slider-param2'];
+                const idSlider = dom['slider-param1'];
+                if (dev === 'p-jfet') {
+                    vSlider.min = 0.5; vSlider.max = 10; vSlider.value = 4;
+                    idSlider.min = 1; idSlider.max = 50;
+                } else if (['n-enh-mesfet', 'hemt'].includes(dev)) {
+                    vSlider.min = 0.1; vSlider.max = 5; vSlider.value = 1;
+                    idSlider.min = 0.1; idSlider.max = 20; idSlider.value = 2;
+                } else {
+                    vSlider.min = -10; vSlider.max = -0.5; vSlider.value = -4;
+                    idSlider.min = 1; idSlider.max = 50; idSlider.value = 10;
+                }
+                updateAll();
+            });
+        }
+
+        window.onload = () => {
+            cacheDom();
+            initChart();
+            setupEventListeners();
+            dom.deviceSelect.dispatchEvent(new Event('change'));
+        };
+    </script>
+</body>
+</html>

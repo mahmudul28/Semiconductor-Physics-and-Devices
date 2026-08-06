@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JFET Physics Lab</title>
+    <style>
+        /* ===== RESET & BASE ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #070b17;
+            --panel: rgba(255, 255, 255, 0.06);
+            --cyan: #4fd1ff;
+            --purple: #8b5cf6;
+            --blue: #2563eb;
+            --green: #10b981;
+            --white: #eef2ff;
+            --glass: rgba(255, 255, 255, 0.04);
+            --border-glow: rgba(79, 209, 255, 0.25);
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--white);
+            min-height: 100vh;
+            overflow-x: hidden;
+            cursor: default;
+            line-height: 1.6;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        /* ===== CURSOR GLOW ===== */
+        #cursor-glow {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            width: 320px;
+            height: 320px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(79, 209, 255, 0.08) 0%, transparent 70%);
+            transform: translate(-50%, -50%);
+            transition: width 0.2s, height 0.2s, opacity 0.2s;
+            will-change: transform;
+            mix-blend-mode: screen;
+        }
+
+        /* ===== PARTICLES CANVAS ===== */
+        #particles-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* ===== STICKY NAV ===== */
+        .top-nav {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: rgba(7, 11, 23, 0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(79, 209, 255, 0.15);
+            padding: 0 2rem;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: box-shadow 0.3s;
+        }
+        .top-nav:hover {
+            box-shadow: 0 4px 40px rgba(79, 209, 255, 0.06);
+        }
+        .top-nav .brand {
+            font-weight: 700;
+            font-size: 1.1rem;
+            letter-spacing: 0.04em;
+            background: linear-gradient(135deg, var(--cyan), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .top-nav .brand span {
+            -webkit-text-fill-color: var(--white);
+            opacity: 0.5;
+            font-weight: 300;
+        }
+        .nav-links {
+            display: flex;
+            gap: 1.8rem;
+            align-items: center;
+            list-style: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+        }
+        .nav-links li a {
+            color: rgba(255, 255, 255, 0.55);
+            transition: color 0.25s, text-shadow 0.25s;
+            position: relative;
+            padding: 0.2rem 0;
+        }
+        .nav-links li a::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: -2px;
+            width: 0;
+            height: 2px;
+            background: var(--cyan);
+            transition: width 0.3s;
+            box-shadow: 0 0 12px var(--cyan);
+        }
+        .nav-links li a:hover {
+            color: var(--white);
+        }
+        .nav-links li a:hover::after {
+            width: 100%;
+        }
+        .nav-links li a.active {
+            color: var(--cyan);
+        }
+        .nav-links li a.active::after {
+            width: 100%;
+        }
+
+        /* ===== MAIN WRAPPER ===== */
+        .main-wrap {
+            position: relative;
+            z-index: 1;
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 2rem 4rem;
+        }
+
+        /* ===== HERO ===== */
+        .hero {
+            padding: 4rem 0 3rem;
+            text-align: center;
+            position: relative;
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--cyan), var(--purple), transparent);
+            opacity: 0.3;
+        }
+        .hero h1 {
+            font-size: 4.2rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #ffffff 20%, var(--cyan) 60%, var(--purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.4rem;
+            text-shadow: 0 0 60px rgba(79, 209, 255, 0.15);
+        }
+        .hero .subtitle {
+            font-size: 1.3rem;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.6);
+            letter-spacing: 0.06em;
+            margin-bottom: 1.2rem;
+        }
+        .hero .description {
+            max-width: 720px;
+            margin: 0 auto 2.2rem;
+            color: rgba(255, 255, 255, 0.55);
+            font-size: 1.05rem;
+            line-height: 1.8;
+        }
+        .hero .description strong {
+            color: var(--cyan);
+            font-weight: 500;
+        }
+        .hero-buttons {
+            display: flex;
+            gap: 1.2rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.8rem 2.4rem;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            letter-spacing: 0.02em;
+            background: var(--panel);
+            border: 1px solid rgba(79, 209, 255, 0.2);
+            color: var(--white);
+            transition: all 0.3s;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(79, 209, 255, 0.05);
+            backdrop-filter: blur(4px);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--cyan), var(--blue));
+            border-color: var(--cyan);
+            color: #070b17;
+            font-weight: 700;
+            box-shadow: 0 0 30px rgba(79, 209, 255, 0.2);
+        }
+        .btn-primary:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 0 50px rgba(79, 209, 255, 0.35);
+        }
+        .btn-secondary {
+            border-color: rgba(139, 92, 246, 0.3);
+            background: rgba(139, 92, 246, 0.08);
+        }
+        .btn-secondary:hover {
+            transform: translateY(-3px);
+            border-color: var(--purple);
+            box-shadow: 0 0 40px rgba(139, 92, 246, 0.15);
+            background: rgba(139, 92, 246, 0.15);
+        }
+
+        /* ===== ROADMAP ===== */
+        .roadmap-section {
+            padding: 3rem 0 2.5rem;
+        }
+        .roadmap-section h2 {
+            text-align: center;
+            font-weight: 300;
+            font-size: 0.9rem;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.25);
+            margin-bottom: 1.6rem;
+        }
+        .roadmap {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.2rem;
+            flex-wrap: wrap;
+            padding: 0.5rem 0;
+        }
+        .roadmap-node {
+            display: flex;
+            align-items: center;
+            gap: 0.2rem;
+        }
+        .roadmap-node .dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--panel);
+            border: 1px solid rgba(79, 209, 255, 0.15);
+            transition: all 0.5s;
+            box-shadow: 0 0 12px transparent;
+            animation: pulse-dot 3s ease-in-out infinite;
+        }
+        .roadmap-node .dot.active {
+            background: var(--cyan);
+            border-color: var(--cyan);
+            box-shadow: 0 0 24px rgba(79, 209, 255, 0.4);
+        }
+        .roadmap-node .label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.4);
+            padding: 0 0.6rem;
+            letter-spacing: 0.04em;
+            white-space: nowrap;
+            transition: color 0.3s;
+        }
+        .roadmap-node .label.active {
+            color: var(--cyan);
+        }
+        .roadmap-connector {
+            width: 32px;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(79, 209, 255, 0.2), rgba(139, 92, 246, 0.2));
+            flex-shrink: 0;
+        }
+
+        @keyframes pulse-dot {
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.6;
+            }
+            50% {
+                transform: scale(1.25);
+                opacity: 1;
+            }
+        }
+
+        /* ===== CARDS GRID ===== */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.8rem;
+            padding: 2.5rem 0 1.5rem;
+        }
+
+        .card {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border-radius: 24px;
+            padding: 2rem 1.8rem 1.8rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.45s cubic-bezier(0.23, 1, 0.32, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            display: flex;
+            flex-direction: column;
+            transform: perspective(1200px) rotateX(0deg) rotateY(0deg) translateZ(0);
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 24px;
+            padding: 1px;
+            background: linear-gradient(135deg, rgba(79, 209, 255, 0.15), rgba(139, 92, 246, 0.05));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+        .card:hover {
+            transform: perspective(1200px) rotateX(2deg) rotateY(4deg) translateY(-8px);
+            border-color: rgba(79, 209, 255, 0.2);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(79, 209, 255, 0.05);
+        }
+        .card .icon {
+            font-size: 2.6rem;
+            margin-bottom: 0.6rem;
+            display: block;
+            filter: drop-shadow(0 0 20px rgba(79, 209, 255, 0.1));
+        }
+        .card h3 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 0.6rem;
+            letter-spacing: -0.01em;
+            background: linear-gradient(135deg, #fff, var(--cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .card .feature-list {
+            list-style: none;
+            margin: 0.6rem 0 1.4rem;
+            flex: 1;
+            font-size: 0.88rem;
+            color: rgba(255, 255, 255, 0.55);
+            line-height: 2;
+        }
+        .card .feature-list li {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .card .feature-list li::before {
+            content: '◆';
+            font-size: 0.5rem;
+            color: var(--cyan);
+            opacity: 0.5;
+        }
+        .card .btn-card {
+            align-self: flex-start;
+            padding: 0.6rem 1.8rem;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            background: rgba(79, 209, 255, 0.08);
+            border: 1px solid rgba(79, 209, 255, 0.15);
+            color: var(--cyan);
+            transition: all 0.3s;
+            cursor: pointer;
+            margin-top: 0.4rem;
+        }
+        .card .btn-card:hover {
+            background: rgba(79, 209, 255, 0.18);
+            border-color: var(--cyan);
+            box-shadow: 0 0 30px rgba(79, 209, 255, 0.1);
+            transform: translateX(4px);
+        }
+        .card .badge {
+            position: absolute;
+            top: 1.2rem;
+            right: 1.2rem;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 0.2rem 0.8rem;
+            border-radius: 40px;
+            background: rgba(79, 209, 255, 0.08);
+            border: 1px solid rgba(79, 209, 255, 0.08);
+            color: rgba(255, 255, 255, 0.25);
+        }
+        .card .best-for {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.3);
+            margin: 0.2rem 0 0.6rem;
+            padding: 0.3rem 0.8rem;
+            border-radius: 40px;
+            background: rgba(79, 209, 255, 0.04);
+            border: 1px solid rgba(79, 209, 255, 0.06);
+            display: inline-block;
+            letter-spacing: 0.02em;
+        }
+        .card .best-for strong {
+            color: var(--cyan);
+            font-weight: 500;
+        }
+
+        /* ===== EQUATIONS ===== */
+        .equations-section {
+            padding: 2.5rem 0 2rem;
+        }
+        .equations-section h2 {
+            text-align: center;
+            font-weight: 300;
+            font-size: 0.9rem;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.2);
+            margin-bottom: 1.6rem;
+        }
+        .equations-panel {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border-radius: 20px;
+            padding: 2rem 2.8rem;
+            border: 1px solid rgba(79, 209, 255, 0.06);
+            display: flex;
+            justify-content: center;
+            gap: 4rem;
+            flex-wrap: wrap;
+            box-shadow: 0 0 60px rgba(79, 209, 255, 0.03);
+            position: relative;
+        }
+        .equations-panel::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 20px;
+            padding: 1px;
+            background: linear-gradient(135deg, rgba(79, 209, 255, 0.08), rgba(139, 92, 246, 0.08));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+        .eq-item {
+            font-size: 1.3rem;
+            font-weight: 500;
+            font-family: 'Times New Roman', 'CMU Serif', serif;
+            color: rgba(255, 255, 255, 0.85);
+            letter-spacing: 0.02em;
+            text-shadow: 0 0 30px rgba(79, 209, 255, 0.05);
+            padding: 0.2rem 0;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.3s;
+        }
+        .eq-item:hover {
+            border-color: rgba(79, 209, 255, 0.2);
+        }
+        .eq-item .highlight {
+            color: var(--cyan);
+        }
+        .eq-item .highlight-purple {
+            color: var(--purple);
+        }
+
+        /* ===== PROFESSOR MODE ===== */
+        .professor-section {
+            padding: 2rem 0 1.5rem;
+        }
+        .professor-panel {
+            background: linear-gradient(135deg, rgba(79, 209, 255, 0.04), rgba(139, 92, 246, 0.04));
+            backdrop-filter: blur(12px);
+            border-radius: 20px;
+            padding: 2rem 2.8rem;
+            border: 1px solid rgba(79, 209, 255, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            box-shadow: 0 0 40px rgba(79, 209, 255, 0.02);
+            position: relative;
+        }
+        .professor-panel::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: 20px;
+            padding: 1px;
+            background: linear-gradient(135deg, rgba(79, 209, 255, 0.12), rgba(139, 92, 246, 0.12));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+        .professor-left {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+        .professor-left h4 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--cyan), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .professor-left p {
+            font-size: 0.92rem;
+            color: rgba(255, 255, 255, 0.5);
+            max-width: 540px;
+            line-height: 1.7;
+        }
+        .professor-left p strong {
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 500;
+        }
+        .toggle-wrap {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-shrink: 0;
+        }
+        .toggle-wrap .label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.4);
+            letter-spacing: 0.04em;
+        }
+        .toggle {
+            width: 52px;
+            height: 28px;
+            border-radius: 40px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            position: relative;
+            cursor: pointer;
+            transition: all 0.4s;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
+        }
+        .toggle.active {
+            background: rgba(79, 209, 255, 0.15);
+            border-color: var(--cyan);
+            box-shadow: 0 0 30px rgba(79, 209, 255, 0.05), inset 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        .toggle .knob {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        .toggle.active .knob {
+            left: 26px;
+            background: var(--cyan);
+            box-shadow: 0 0 24px rgba(79, 209, 255, 0.4);
+        }
+        .toggle .glow {
+            position: absolute;
+            inset: -4px;
+            border-radius: 40px;
+            background: radial-gradient(circle at center, rgba(79, 209, 255, 0.1), transparent 70%);
+            opacity: 0;
+            transition: opacity 0.4s;
+            pointer-events: none;
+        }
+        .toggle.active .glow {
+            opacity: 1;
+        }
+
+        /* ===== COMPARISON TABLE ===== */
+        .table-section {
+            padding: 2.5rem 0 1.5rem;
+        }
+        .table-section h2 {
+            text-align: center;
+            font-weight: 300;
+            font-size: 0.9rem;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.2);
+            margin-bottom: 1.6rem;
+        }
+        .table-wrap {
+            overflow-x: auto;
+            border-radius: 20px;
+            border: 1px solid rgba(79, 209, 255, 0.06);
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.2);
+        }
+        .table-wrap table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.92rem;
+        }
+        .table-wrap th {
+            text-align: left;
+            padding: 1rem 1.6rem;
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: rgba(255, 255, 255, 0.25);
+            border-bottom: 1px solid rgba(79, 209, 255, 0.06);
+            background: rgba(0, 0, 0, 0.2);
+        }
+        .table-wrap td {
+            padding: 0.9rem 1.6rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+            color: rgba(255, 255, 255, 0.6);
+            transition: background 0.2s;
+        }
+        .table-wrap tr:hover td {
+            background: rgba(79, 209, 255, 0.03);
+        }
+        .table-wrap tr:last-child td {
+            border-bottom: none;
+        }
+        .table-wrap td:first-child {
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        .table-wrap .tag {
+            display: inline-block;
+            padding: 0.1rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .tag-cyan {
+            background: rgba(79, 209, 255, 0.1);
+            color: var(--cyan);
+        }
+        .tag-purple {
+            background: rgba(139, 92, 246, 0.1);
+            color: var(--purple);
+        }
+        .tag-green {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--green);
+        }
+        .tag-blue {
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--blue);
+        }
+
+        /* ===== LIVE STATUS ===== */
+        .status-section {
+            padding: 2rem 0 1.5rem;
+        }
+        .status-panel {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border-radius: 20px;
+            padding: 1.8rem 2.4rem;
+            border: 1px solid rgba(79, 209, 255, 0.05);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 1rem 2rem;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+        .status-panel::before {
+            content: '● LIVE';
+            position: absolute;
+            top: 0.8rem;
+            right: 1.6rem;
+            font-size: 0.6rem;
+            letter-spacing: 0.1em;
+            color: var(--green);
+            opacity: 0.5;
+            font-weight: 600;
+        }
+        .status-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.1rem;
+        }
+        .status-item .label {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: rgba(255, 255, 255, 0.2);
+            font-weight: 600;
+        }
+        .status-item .value {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.85);
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            letter-spacing: 0.02em;
+        }
+        .status-item .value .highlight {
+            color: var(--cyan);
+        }
+        .status-item .value .dim {
+            color: rgba(255, 255, 255, 0.25);
+            font-weight: 300;
+        }
+
+        /* ===== PROJECT STRUCTURE PANEL ===== */
+        .structure-section {
+            padding: 2rem 0 1.5rem;
+        }
+        .structure-panel {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border-radius: 20px;
+            padding: 1.6rem 2.4rem;
+            border: 1px solid rgba(79, 209, 255, 0.04);
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.15);
+            position: relative;
+            font-size: 0.85rem;
+        }
+        .structure-panel .tree-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: rgba(255, 255, 255, 0.2);
+            margin-bottom: 0.6rem;
+            font-weight: 600;
+        }
+        .structure-panel .tree {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            color: rgba(255, 255, 255, 0.4);
+            line-height: 1.8;
+            font-size: 0.82rem;
+            letter-spacing: 0.01em;
+        }
+        .structure-panel .tree .dir {
+            color: var(--cyan);
+            opacity: 0.7;
+        }
+        .structure-panel .tree .file {
+            color: rgba(255, 255, 255, 0.45);
+        }
+        .structure-panel .tree .file-highlight {
+            color: var(--cyan);
+            opacity: 0.9;
+        }
+        .structure-panel .tree .branch {
+            color: rgba(255, 255, 255, 0.12);
+        }
+
+        /* ===== FOOTER ===== */
+        .footer {
+            margin-top: 4rem;
+            padding: 3rem 0 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.03);
+            text-align: center;
+            position: relative;
+        }
+        .footer .brand-lg {
+            font-size: 1.4rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--cyan), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.01em;
+        }
+        .footer .tagline {
+            color: rgba(255, 255, 255, 0.2);
+            font-size: 0.85rem;
+            margin: 0.2rem 0 1.2rem;
+            letter-spacing: 0.02em;
+        }
+        .footer .desc {
+            max-width: 560px;
+            margin: 0 auto 1.2rem;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 0.92rem;
+            line-height: 1.7;
+        }
+        .footer .desc strong {
+            color: rgba(255, 255, 255, 0.4);
+            font-weight: 400;
+        }
+        .footer .glow-line {
+            font-size: 0.9rem;
+            font-weight: 300;
+            color: rgba(255, 255, 255, 0.2);
+            letter-spacing: 0.04em;
+            padding: 0.6rem 0 0;
+            border-top: 1px solid rgba(79, 209, 255, 0.04);
+            max-width: 600px;
+            margin: 1.2rem auto 0;
+            font-style: italic;
+        }
+        .footer .glow-line .glow {
+            color: var(--cyan);
+            opacity: 0.6;
+        }
+        .footer .credit {
+            margin-top: 1.8rem;
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.25);
+            letter-spacing: 0.02em;
+        }
+        .footer .credit .name {
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 500;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1024px) {
+            .cards-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .hero h1 {
+                font-size: 3.2rem;
+            }
+            .equations-panel {
+                gap: 2rem;
+                padding: 1.6rem 1.8rem;
+            }
+            .eq-item {
+                font-size: 1.1rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .top-nav {
+                padding: 0 1rem;
+                flex-wrap: wrap;
+                height: auto;
+                min-height: 56px;
+                gap: 0.4rem;
+            }
+            .nav-links {
+                gap: 0.8rem;
+                font-size: 0.75rem;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            .main-wrap {
+                padding: 0 1rem 3rem;
+            }
+            .hero h1 {
+                font-size: 2.4rem;
+            }
+            .hero .subtitle {
+                font-size: 1rem;
+            }
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+            .professor-panel {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 1.6rem;
+            }
+            .toggle-wrap {
+                align-self: flex-start;
+            }
+            .status-panel {
+                flex-direction: column;
+                gap: 0.6rem;
+                padding: 1.4rem 1.6rem;
+            }
+            .status-panel::before {
+                top: 0.6rem;
+                right: 1rem;
+            }
+            .equations-panel {
+                flex-direction: column;
+                align-items: center;
+                gap: 0.8rem;
+                padding: 1.4rem;
+            }
+            .eq-item {
+                font-size: 1rem;
+            }
+            .table-wrap th,
+            .table-wrap td {
+                padding: 0.6rem 1rem;
+                font-size: 0.8rem;
+            }
+            .roadmap-connector {
+                width: 12px;
+            }
+            .roadmap-node .label {
+                font-size: 0.6rem;
+                padding: 0 0.3rem;
+            }
+            .hero-buttons .btn {
+                padding: 0.6rem 1.6rem;
+                font-size: 0.85rem;
+            }
+            .footer .brand-lg {
+                font-size: 1.1rem;
+            }
+            .structure-panel {
+                padding: 1.2rem 1.4rem;
+            }
+            .structure-panel .tree {
+                font-size: 0.7rem;
+                line-height: 1.6;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero h1 {
+                font-size: 1.8rem;
+            }
+            .nav-links li a {
+                font-size: 0.7rem;
+            }
+            .card {
+                padding: 1.4rem 1.2rem;
+            }
+            .card .feature-list {
+                font-size: 0.8rem;
+                line-height: 1.8;
+            }
+            .structure-panel .tree {
+                font-size: 0.6rem;
+                line-height: 1.5;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== CURSOR GLOW ===== -->
+    <div id="cursor-glow"></div>
+
+    <!-- ===== PARTICLES CANVAS ===== -->
+    <canvas id="particles-canvas"></canvas>
+
+    <!-- ===== STICKY NAV ===== -->
+    <nav class="top-nav">
+        <div class="brand">JFET<span>Lab</span></div>
+        <ul class="nav-links">
+            <li><a href="#" class="active">🏠 Home</a></li>
+            <li><a href="geometry-field.html">🔬 Structure Lab</a></li>
+            <li><a href="graph-lab.html">📈 Graph Lab</a></li>
+            <li><a href="advanced-effects.html">🚀 Advanced Lab</a></li>
+            <li><a href="https://github.com/mahmudul28/Semiconductor-Physics-and-Devices" target="_blank">💻 GitHub</a></li>
+        </ul>
+    </nav>
+
+    <!-- ===== MAIN ===== -->
+    <div class="main-wrap">
+
+        <!-- ===== HERO ===== -->
+        <section class="hero">
+            <h1>⚡ JFET Physics Lab</h1>
+            <p class="subtitle">Interactive Semiconductor Device Physics Visualization Suite</p>
+            <p class="description">
+                Combines <strong>JFET</strong> · <strong>MESFET</strong> · <strong>Enhancement MESFET</strong> ·
+                <strong>Nonideal Effects</strong> · <strong>HEMT / MODFET</strong> · <strong>Electric Field
+                    Visualization</strong> ·
+                <strong>Graph Transformation Lab</strong> · <strong>Fabricated Device Structures</strong> ·
+                <strong>Quantum‑Well &amp; 2‑DEG</strong>
+            </p>
+            <div class="hero-buttons">
+                <a href="geometry-field.html" class="btn btn-primary">🚀 Launch Structure Lab</a>
+                <a href="graph-lab.html" class="btn btn-secondary">📈 Open Graph Laboratory</a>
+            </div>
+        </section>
+
+        <!-- ===== ROADMAP ===== -->
+        <section class="roadmap-section">
+            <h2>Chapter Roadmap</h2>
+            <div class="roadmap">
+                <div class="roadmap-node"><span class="dot active"></span><span class="label active">Structure</span></div>
+                <span class="roadmap-connector"></span>
+                <div class="roadmap-node"><span class="dot"></span><span class="label">Depletion</span></div>
+                <span class="roadmap-connector"></span>
+                <div class="roadmap-node"><span class="dot"></span><span class="label">Pinchoff</span></div>
+                <span class="roadmap-connector"></span>
+                <div class="roadmap-node"><span class="dot"></span><span class="label">Saturation</span></div>
+                <span class="roadmap-connector"></span>
+                <div class="roadmap-node"><span class="dot"></span><span class="label">Nonideal</span></div>
+                <span class="roadmap-connector"></span>
+                <div class="roadmap-node"><span class="dot"></span><span class="label">HEMT</span></div>
+            </div>
+        </section>
+
+        <!-- ===== CARDS ===== -->
+        <div class="cards-grid">
+
+            <!-- Card 1 -->
+            <div class="card">
+                <span class="badge">Lab</span>
+                <span class="icon">🔬</span>
+                <h3>Structure &amp; Electric Field Lab</h3>
+                <div class="best-for"><strong>Best for:</strong> Pinchoff • Electric field • Carrier flow</div>
+                <ul class="feature-list">
+                    <li>Cross‑section animation</li>
+                    <li>Depletion width modulation</li>
+                    <li>Pinchoff visualization</li>
+                    <li>Electric‑field heatmaps</li>
+                    <li>Electron / hole flow</li>
+                    <li>Fabricated semiconductor view</li>
+                    <li>Device‑aware gate structures</li>
+                </ul>
+                <a href="geometry-field.html" class="btn-card">Open Structure Lab →</a>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="card">
+                <span class="badge">Lab</span>
+                <span class="icon">📈</span>
+                <h3>Graph Laboratory</h3>
+                <div class="best-for"><strong>Best for:</strong> Exam graphs • √ID • gm • Professor Mode</div>
+                <ul class="feature-list">
+                    <li>I<sub>D</sub>–V<sub>DS</sub></li>
+                    <li>I<sub>D</sub>–V<sub>GS</sub></li>
+                    <li>√I<sub>D</sub> vs V<sub>GS</sub></li>
+                    <li>I<sub>D</sub>² vs V<sub>GS</sub></li>
+                    <li>g<sub>m</sub> vs V<sub>GS</sub></li>
+                    <li>g<sub>d</sub> vs V<sub>GS</sub></li>
+                    <li>Log subthreshold &amp; Professor Mode</li>
+                </ul>
+                <a href="graph-lab.html" class="btn-card">Open Graph Lab →</a>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="card">
+                <span class="badge">Advanced</span>
+                <span class="icon">🚀</span>
+                <h3>Advanced Physics &amp; HEMT Lab</h3>
+                <div class="best-for"><strong>Best for:</strong> Nonideal effects • Velocity saturation • 2-DEG</div>
+                <ul class="feature-list">
+                    <li>Channel length modulation</li>
+                    <li>Effective channel length L′</li>
+                    <li>ΔL visualization</li>
+                    <li>Velocity saturation</li>
+                    <li>Field‑dependent mobility</li>
+                    <li>Subthreshold &amp; gate leakage</li>
+                    <li>AlGaAs/GaAs heterojunction</li>
+                    <li>2‑DEG quantum well</li>
+                </ul>
+                <a href="advanced-effects.html" class="btn-card">Open Advanced Lab →</a>
+            </div>
+
+        </div>
+
+        <!-- ===== EQUATIONS ===== -->
+        <section class="equations-section">
+            <h2>Core Device Relations</h2>
+            <div class="equations-panel">
+                <span class="eq-item">I<sub>D</sub> = I<sub>DSS</sub> (1 − V<sub>GS</sub>/V<sub>p</sub>)<sup>2</sup></span>
+                <span class="eq-item">I<sub>D</sub> = k<sub>n</sub> (V<sub>GS</sub> − V<sub>T</sub>)<sup>2</sup></span>
+                <span class="eq-item">I<sub>D</sub>′ = I<sub>D</sub> (1 + λ V<sub>DS</sub>)</span>
+            </div>
+        </section>
+
+        <!-- ===== PROFESSOR MODE ===== -->
+        <section class="professor-section">
+            <div class="professor-panel">
+                <div class="professor-left">
+                    <h4>🎓 Professor Mode</h4>
+                    <p>
+                        Automatically handles <strong>n‑channel ↔ p‑channel</strong> conversion,
+                        <strong>p⁺n ↔ n⁺p</strong> junction reversal, sign‑convention flipping,
+                        automatic equation updates, and transformed graph generation.
+                    </p>
+                </div>
+                <div class="toggle-wrap">
+                    <span class="label">Professor Mode Enabled</span>
+                    <div class="toggle active" id="profToggle">
+                        <div class="glow"></div>
+                        <div class="knob"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== COMPARISON TABLE ===== -->
+        <section class="table-section">
+            <h2>Device Technology Comparison</h2>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Device</th>
+                            <th>Gate Type</th>
+                            <th>Default State</th>
+                            <th>Key Advantage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>JFET</td>
+                            <td><span class="tag tag-cyan">p–n Junction</span></td>
+                            <td><span class="tag tag-blue">Normally ON</span></td>
+                            <td>Simplicity</td>
+                        </tr>
+                        <tr>
+                            <td>MESFET</td>
+                            <td><span class="tag tag-purple">Schottky Metal</span></td>
+                            <td><span class="tag tag-blue">ON or OFF</span></td>
+                            <td>High‑speed GaAs</td>
+                        </tr>
+                        <tr>
+                            <td>Enhancement MESFET</td>
+                            <td><span class="tag tag-purple">Schottky Metal</span></td>
+                            <td><span class="tag tag-green">Normally OFF</span></td>
+                            <td>Easier logic integration</td>
+                        </tr>
+                        <tr>
+                            <td>HEMT</td>
+                            <td><span class="tag tag-cyan">Schottky / Heterojunction</span></td>
+                            <td><span class="tag tag-green">Very high mobility</span></td>
+                            <td>Highest speed &amp; lowest noise</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ===== LIVE STATUS ===== -->
+        <section class="status-section">
+            <div class="status-panel">
+                <div class="status-item">
+                    <span class="label">Device</span>
+                    <span class="value"><span class="highlight">n‑MESFET</span></span>
+                </div>
+                <div class="status-item">
+                    <span class="label">Mode</span>
+                    <span class="value"><span class="highlight">Saturation</span></span>
+                </div>
+                <div class="status-item">
+                    <span class="label">Electric Field</span>
+                    <span class="value" id="efield">4.8 <span class="dim">kV/cm</span></span>
+                </div>
+                <div class="status-item">
+                    <span class="label">Pinch‑off</span>
+                    <span class="value"><span class="highlight" style="color:var(--green);">ACTIVE</span></span>
+                </div>
+                <div class="status-item">
+                    <span class="label">2‑DEG Density</span>
+                    <span class="value" id="degDensity">1.37×10<sup>12</sup> <span class="dim">cm⁻²</span></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== PROJECT STRUCTURE ===== -->
+        <section class="structure-section">
+            <div class="structure-panel">
+                <div class="tree-title">📁 Project Structure</div>
+                <div class="tree">
+                    <span class="dir">Semiconductor-Physics-and-Devices/</span><br />
+                    <span class="branch">└──</span> <span class="dir">The Junction Field-Effect Transistor/</span><br />
+                    <span class="branch">&nbsp;&nbsp;&nbsp;&nbsp;├──</span> <span class="file-highlight">index.html</span><br />
+                    <span class="branch">&nbsp;&nbsp;&nbsp;&nbsp;├──</span> <span class="file">geometry-field.html</span><br />
+                    <span class="branch">&nbsp;&nbsp;&nbsp;&nbsp;├──</span> <span class="file">graph-lab.html</span><br />
+                    <span class="branch">&nbsp;&nbsp;&nbsp;&nbsp;└──</span> <span class="file">advanced-effects.html</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== FOOTER ===== -->
+        <footer class="footer">
+            <div class="brand-lg">JFET Physics Lab</div>
+            <div class="tagline">Advanced Interactive Semiconductor Device Visualization Platform</div>
+            <div class="desc">
+                Built for:<br />
+                <strong>• Electrical &amp; Electronic Engineering</strong><br />
+                <strong>• Semiconductor Physics</strong><br />
+                <strong>• Device Modeling</strong><br />
+                <strong>• Interactive Learning</strong>
+            </div>
+            <div class="credit">
+                <span class="name">Mahmudul Hasan (2202156)</span>
+            </div>
+            <div class="glow-line">
+                “From depletion width to quantum wells — <span class="glow">visualize the physics</span>, not just the equations.”
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- ===== SCRIPTS ===== -->
+    <script>
+        (function() {
+            'use strict';
+
+            // ————— CURSOR GLOW —————
+            const glow = document.getElementById('cursor-glow');
+            let mx = -999,
+                my = -999;
+            document.addEventListener('mousemove', (e) => {
+                mx = e.clientX;
+                my = e.clientY;
+                glow.style.transform = 'translate(' + mx + 'px, ' + my + 'px) translate(-50%, -50%)';
+            });
+            document.addEventListener('mouseleave', () => {
+                glow.style.opacity = '0';
+            });
+            document.addEventListener('mouseenter', () => {
+                glow.style.opacity = '1';
+            });
+
+            // ————— PARTICLES —————
+            const canvas = document.getElementById('particles-canvas');
+            const ctx = canvas.getContext('2d');
+            let w, h;
+            const particles = [];
+            const COUNT = 65;
+
+            function resize() {
+                w = canvas.width = window.innerWidth;
+                h = canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            class Particle {
+                constructor() {
+                    this.reset();
+                }
+                reset() {
+                    this.x = Math.random() * w;
+                    this.y = Math.random() * h;
+                    this.size = 1.2 + Math.random() * 2.2;
+                    this.speedX = (Math.random() - 0.5) * 0.25;
+                    this.speedY = (Math.random() - 0.5) * 0.25;
+                    this.opacity = 0.15 + Math.random() * 0.35;
+                }
+                update() {
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+                    if (this.x < 0 || this.x > w) this.speedX *= -1;
+                    if (this.y < 0 || this.y > h) this.speedY *= -1;
+                }
+                draw() {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 2);
+                    grad.addColorStop(0, 'rgba(79, 209, 255, ' + this.opacity + ')');
+                    grad.addColorStop(1, 'rgba(79, 209, 255, 0)');
+                    ctx.fillStyle = grad;
+                    ctx.fill();
+                }
+            }
+
+            for (let i = 0; i < COUNT; i++) {
+                particles.push(new Particle());
+            }
+
+            function animateParticles() {
+                ctx.clearRect(0, 0, w, h);
+                for (const p of particles) {
+                    p.update();
+                    p.draw();
+                }
+                // occasional extra faint dots
+                ctx.fillStyle = 'rgba(139, 92, 246, 0.04)';
+                for (let i = 0; i < 3; i++) {
+                    const x = (Math.random() * w);
+                    const y = (Math.random() * h);
+                    ctx.beginPath();
+                    ctx.arc(x, y, 0.8 + Math.random() * 1.2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                requestAnimationFrame(animateParticles);
+            }
+            animateParticles();
+
+            // ————— ROADMAP PULSE —————
+            const dots = document.querySelectorAll('.roadmap-node .dot');
+            const labels = document.querySelectorAll('.roadmap-node .label');
+            let idx = 0;
+
+            function cycleRoadmap() {
+                dots.forEach((d, i) => {
+                    d.classList.toggle('active', i === idx);
+                });
+                labels.forEach((l, i) => {
+                    l.classList.toggle('active', i === idx);
+                });
+                idx = (idx + 1) % dots.length;
+            }
+            setInterval(cycleRoadmap, 2200);
+
+            // ————— PROFESSOR TOGGLE —————
+            const toggle = document.getElementById('profToggle');
+            toggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                this.classList.toggle('active');
+            });
+
+            // ————— LIVE STATUS ANIMATION —————
+            const efieldEl = document.getElementById('efield');
+            const densityEl = document.getElementById('degDensity');
+
+            function jitterValue(el, base, variation, decimals, suffix) {
+                const v = base + (Math.random() - 0.5) * variation;
+                const formatted = v.toFixed(decimals);
+                if (suffix) {
+                    el.innerHTML = formatted + ' <span class="dim">' + suffix + '</span>';
+                } else {
+                    el.textContent = formatted;
+                }
+            }
+
+            setInterval(() => {
+                jitterValue(efieldEl, 4.8, 0.6, 1, 'kV/cm');
+            }, 1200);
+
+            setInterval(() => {
+                const base = 1.37;
+                const v = base + (Math.random() - 0.5) * 0.12;
+                const exp = 12;
+                const mantissa = v.toFixed(2);
+                densityEl.innerHTML = mantissa + '×10<sup>' + exp + '</sup> <span class="dim">cm⁻²</span>';
+            }, 1400);
+
+            // ————— CARD 3D TILT (mouse hover) —————
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                card.addEventListener('mousemove', function(e) {
+                    const rect = this.getBoundingClientRect();
+                    const x = (e.clientX - rect.left) / rect.width - 0.5;
+                    const y = (e.clientY - rect.top) / rect.height - 0.5;
+                    const rotX = -y * 4;
+                    const rotY = x * 4;
+                    this.style.transform =
+                        'perspective(1200px) rotateX(' + rotX + 'deg) rotateY(' + rotY +
+                        'deg) translateY(-8px)';
+                });
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0)';
+                });
+            });
+
+            // ————— NAV SMOOTH SCROLL (for anchor links) —————
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function(e) {
+                    const href = this.getAttribute('href');
+                    if (href === '#') return;
+                    const target = document.querySelector(href);
+                    if (target) {
+                        e.preventDefault();
+                        target.scrollIntoView({ behavior: 'smooth' });
+                    }
+                });
+            });
+
+        })();
+    </script>
+
+</body>
+</html>

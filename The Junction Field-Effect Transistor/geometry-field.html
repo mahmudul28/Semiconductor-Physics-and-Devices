@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Channel Geometry &amp; Field Lab — JFET / MESFET / HEMT Cross-Section</title>
+<style>
+/* ============================================================
+   TOKEN SYSTEM — Upgraded dark scientific aesthetic
+   ============================================================ */
+:root{
+  --bg:#05090f;
+  --bg-panel:#0b111e;
+  --bg-panel-2:#101a2a;
+  --line:rgba(140,180,255,.12);
+  --line-soft:rgba(140,180,255,.06);
+  --blue:#4da3ff;
+  --cyan:#29e0d6;
+  --violet:#9b7bff;
+  --amber:#f5b942;
+  --red:#ff5c5c;
+  --green:#34d399;
+  --text-hi:#e8edf7;
+  --text-lo:#6a7f9e;
+  --mono: ui-monospace, SFMono-Regular, "IBM Plex Mono", Menlo, Consolas, monospace;
+  --sans: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+*{box-sizing:border-box;}
+html,body{
+  margin:0; padding:0; min-height:100%;
+  background:radial-gradient(1400px 800px at 10% -10%, rgba(77,163,255,.07), transparent 65%),
+             radial-gradient(1000px 700px at 110% 20%, rgba(155,123,255,.05), transparent 50%),
+             var(--bg);
+  color:var(--text-hi);
+  font-family:var(--sans);
+  -webkit-font-smoothing:antialiased;
+}
+.app{
+  display:grid;
+  grid-template-columns:296px 1fr;
+  grid-template-rows:auto 1fr;
+  grid-template-areas:
+    "header header"
+    "controls main";
+  min-height:100vh;
+}
+/* ---------- header ---------- */
+header.top{
+  grid-area:header;
+  display:flex; align-items:center; gap:16px;
+  padding:12px 22px;
+  border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg, rgba(11,17,30,.92), rgba(11,17,30,.6));
+  backdrop-filter:blur(12px);
+}
+header.top .brand{
+  font-family:var(--mono);
+  font-size:13px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--cyan);
+  display:flex; align-items:center; gap:10px;
+}
+header.top .brand .dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--cyan); box-shadow:0 0 10px var(--cyan);
+  animation:pulse 2.4s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+header.top .title{
+  font-size:13px; color:var(--text-lo); font-family:var(--mono);
+}
+header.top .readout{
+  margin-left:auto;
+  display:flex; gap:18px; font-family:var(--mono); font-size:12px; color:var(--text-lo);
+}
+header.top .readout b{color:var(--text-hi); font-weight:600;}
+header.top .readout span.state-tag{
+  padding:3px 10px; border-radius:20px; border:1px solid var(--line);
+  color:var(--amber); background:rgba(245,185,66,.08);
+}
+/* ---------- sidebar ---------- */
+aside.controls{
+  grid-area:controls;
+  border-right:1px solid var(--line);
+  padding:16px 14px 40px;
+  overflow-y:auto;
+  background:linear-gradient(180deg, rgba(11,17,30,.5), rgba(11,17,30,.2));
+}
+.panel{
+  background:var(--bg-panel);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:14px 14px 16px;
+  margin-bottom:14px;
+  box-shadow:0 1px 0 rgba(255,255,255,.02) inset, 0 12px 30px -18px rgba(0,0,0,.8);
+}
+.panel h3{
+  margin:0 0 10px; font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--text-lo); font-family:var(--mono); font-weight:600;
+  display:flex; align-items:center; gap:8px;
+}
+.panel h3::before{
+  content:""; width:10px; height:1px; background:var(--blue); display:inline-block;
+}
+select#deviceSelect{
+  width:100%; padding:9px 10px; border-radius:9px;
+  background:var(--bg-panel-2); color:var(--text-hi);
+  border:1px solid var(--line); font-family:var(--mono); font-size:12px;
+  outline:none; cursor:pointer;
+}
+.toggle-row{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:8px 2px; font-size:12.5px; color:var(--text-hi);
+}
+.switch{
+  position:relative; width:38px; height:20px; flex:none;
+}
+.switch input{opacity:0; width:0; height:0;}
+.switch .track{
+  position:absolute; inset:0; background:var(--bg-panel-2); border:1px solid var(--line);
+  border-radius:20px; transition:.2s; cursor:pointer;
+}
+.switch .track::after{
+  content:""; position:absolute; width:14px; height:14px; border-radius:50%;
+  background:var(--text-lo); top:2px; left:2px; transition:.2s;
+}
+.switch input:checked + .track{ background:rgba(41,224,214,.18); border-color:var(--cyan);}
+.switch input:checked + .track::after{ background:var(--cyan); transform:translateX(18px); box-shadow:0 0 8px var(--cyan);}
+.slider-block{margin-bottom:14px;}
+.slider-block:last-child{margin-bottom:2px;}
+.slider-label{
+  display:flex; justify-content:space-between; align-items:baseline;
+  font-family:var(--mono); font-size:11.5px; color:var(--text-lo); margin-bottom:5px;
+}
+.slider-label b{color:var(--text-hi); font-weight:600; font-size:12px;}
+.slider-label .val{color:var(--cyan); font-weight:600;}
+input[type=range]{
+  -webkit-appearance:none; width:100%; height:4px; border-radius:3px;
+  background:linear-gradient(90deg, var(--blue), var(--line-soft));
+  outline:none; cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none; width:14px; height:14px; border-radius:50%;
+  background:var(--cyan); border:2px solid #05121a;
+  box-shadow:0 0 8px rgba(41,224,214,.7); cursor:pointer; margin-top:-5px;
+}
+input[type=range]::-moz-range-thumb{
+  width:14px; height:14px; border-radius:50%; background:var(--cyan);
+  border:2px solid #05121a; box-shadow:0 0 8px rgba(41,224,214,.7); cursor:pointer;
+}
+.chip-group{display:flex; flex-wrap:wrap; gap:6px;}
+.chip{
+  font-family:var(--mono); font-size:10px; padding:5px 9px; border-radius:8px;
+  border:1px solid var(--line); background:var(--bg-panel-2); color:var(--text-lo);
+  cursor:pointer; transition:.15s; user-select:none;
+}
+.chip.active{ color:var(--bg); background:var(--cyan); border-color:var(--cyan); font-weight:700;}
+.hint{font-size:11px; color:var(--text-lo); line-height:1.5; margin-top:8px;}
+/* ---------- main ---------- */
+main.stage-wrap{
+  grid-area:main;
+  padding:16px 20px 30px;
+  display:grid;
+  grid-template-columns:1.6fr 1fr;
+  grid-template-rows:auto auto auto;
+  gap:14px;
+  align-items:start;
+}
+.card{
+  background:var(--bg-panel);
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:16px 18px 18px;
+  box-shadow:0 1px 0 rgba(255,255,255,.02) inset, 0 20px 40px -26px rgba(0,0,0,.8);
+}
+.card h2{
+  margin:0 0 4px; font-size:13px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--text-lo); font-family:var(--mono); font-weight:600;
+}
+.card .sub{font-size:11.5px; color:var(--text-lo); margin-bottom:10px;}
+#crossSectionCard{grid-column:1; grid-row:1 / span 3;}
+#modeCard{grid-column:2; grid-row:1;}
+#statusCard{grid-column:2; grid-row:2;}
+#insightCard{grid-column:2; grid-row:3;}
+svg#stage{width:100%; height:auto; display:block; border-radius:10px; background:radial-gradient(ellipse at center, rgba(77,163,255,.03), transparent 70%);}
+.legend-row{
+  display:flex; flex-wrap:wrap; gap:14px; margin-top:10px;
+  font-family:var(--mono); font-size:10.5px; color:var(--text-lo);
+}
+.legend-row .item{display:flex; align-items:center; gap:6px;}
+.legend-row .swatch{width:16px; height:4px; border-radius:2px; display:inline-block;}
+.mode-status{
+  font-family:var(--mono);
+  border:1px solid var(--line);
+  background:var(--bg-panel-2);
+  border-radius:12px;
+  padding:14px 16px;
+}
+.mode-status .device-line{font-size:11px; color:var(--text-lo); letter-spacing:.06em;}
+.mode-status .mode-line{
+  font-size:19px; font-weight:700; margin:4px 0 10px;
+  display:flex; align-items:center; gap:10px;
+}
+.mode-badge{
+  display:inline-block; padding:2px 10px; border-radius:20px; font-size:11px;
+  font-weight:700; letter-spacing:.04em;
+}
+.mode-badge.cutoff{background:rgba(124,138,168,.15); color:var(--text-lo); border:1px solid var(--line);}
+.mode-badge.ohmic{background:rgba(77,163,255,.14); color:var(--blue); border:1px solid rgba(77,163,255,.4);}
+.mode-badge.sat{background:rgba(255,92,92,.13); color:var(--red); border:1px solid rgba(255,92,92,.4);}
+.eq-box{
+  margin-top:10px; padding:12px 14px; border-radius:10px;
+  background:linear-gradient(180deg, rgba(77,163,255,.08), rgba(77,163,255,.02));
+  border:1px solid rgba(77,163,255,.25);
+  font-family:var(--mono); font-size:15px; color:var(--cyan); text-align:center;
+  letter-spacing:.02em;
+}
+.state-lines{margin-top:12px; font-size:12px; color:var(--text-hi); line-height:1.85; font-family:var(--sans);}
+.state-lines .k{color:var(--text-lo); font-family:var(--mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; margin-top:8px;}
+.readouts{
+  display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:12px;
+}
+.readouts .r{
+  background:var(--bg-panel-2); border:1px solid var(--line); border-radius:9px;
+  padding:8px 9px; text-align:center;
+}
+.readouts .r .l{font-size:9.5px; color:var(--text-lo); font-family:var(--mono); text-transform:uppercase; letter-spacing:.06em;}
+.readouts .r .v{font-size:14.5px; color:var(--text-hi); font-family:var(--mono); font-weight:700; margin-top:2px;}
+details.insight-item{
+  border-top:1px solid var(--line-soft); padding:9px 0;
+}
+details.insight-item:first-child{border-top:none; padding-top:0;}
+details.insight-item summary{
+  cursor:pointer; font-family:var(--mono); font-size:12px; color:var(--text-hi);
+  list-style:none; display:flex; align-items:center; gap:8px;
+}
+details.insight-item summary::-webkit-details-marker{display:none;}
+details.insight-item summary::before{
+  content:"▸"; color:var(--cyan); transition:.15s; display:inline-block;
+}
+details.insight-item[open] summary::before{ transform:rotate(90deg); }
+details.insight-item .body{
+  font-size:12px; color:var(--text-lo); line-height:1.7; padding:8px 2px 2px 18px;
+}
+details.insight-item .body ul{margin:0; padding-left:16px;}
+.prof-banner{
+  margin-top:10px; padding:10px 12px; border-radius:10px;
+  border:1px dashed rgba(155,123,255,.5); background:rgba(155,123,255,.06);
+  font-family:var(--mono); font-size:11px; color:var(--violet); line-height:1.7;
+}
+.prof-banner b{color:var(--text-hi);}
+::-webkit-scrollbar{width:9px;}
+::-webkit-scrollbar-thumb{background:rgba(140,180,255,.18); border-radius:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+
+/* Live Status Panel */
+.status-grid{
+  display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; margin-top:6px;
+}
+.status-grid .stat{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:5px 0; border-bottom:1px solid var(--line-soft);
+  font-family:var(--mono); font-size:11px;
+}
+.status-grid .stat .lbl{color:var(--text-lo); text-transform:uppercase; letter-spacing:.04em;}
+.status-grid .stat .val{color:var(--text-hi); font-weight:600;}
+.status-grid .stat .val.glow{color:var(--cyan); text-shadow:0 0 12px rgba(41,224,214,.4);}
+.status-grid .stat .val.warn{color:var(--amber);}
+.status-grid .stat .val.danger{color:var(--red);}
+
+@media (max-width: 980px){
+  .app{grid-template-columns:1fr; grid-template-areas:"header" "controls" "main";}
+  main.stage-wrap{grid-template-columns:1fr;}
+  #crossSectionCard{grid-column:1; grid-row:auto;}
+  #modeCard, #statusCard, #insightCard{grid-column:1; grid-row:auto;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <div class="brand"><span class="dot"></span>FET·LAB</div>
+    <div class="title">channel geometry &amp; field visualizer</div>
+    <div class="readout">
+      <div>V<sub>GS</sub> <b id="hdrVgs">0.00</b> V</div>
+      <div>V<sub>DS</sub> <b id="hdrVds">0.00</b> V</div>
+      <div>I<sub>D</sub> <b id="hdrId">0.00</b> mA</div>
+      <span class="state-tag" id="hdrMode">CUTOFF</span>
+    </div>
+  </header>
+
+  <aside class="controls">
+
+    <div class="panel">
+      <h3>Device</h3>
+      <select id="deviceSelect">
+        <option value="njfet">n-channel JFET (depletion)</option>
+        <option value="pjfet">p-channel JFET (depletion)</option>
+        <option value="nmesfet">n-MESFET (depletion)</option>
+        <option value="emesfet">Enhancement MESFET (n)</option>
+        <option value="hemt">HEMT (AlGaAs/GaAs)</option>
+      </select>
+      <div class="toggle-row" style="margin-top:12px;">
+        <span>Professor Mode</span>
+        <label class="switch"><input type="checkbox" id="profMode"><span class="track"></span></label>
+      </div>
+      <div class="hint" id="profHint">Shows the mirrored n↔p sign convention alongside the live readout — built for solving polarity-flipped exam problems.</div>
+    </div>
+
+    <div class="panel">
+      <h3>Bias Controls</h3>
+      <div class="slider-block">
+        <div class="slider-label"><b>V<sub>GS</sub></b><span class="val" id="vgsVal">0.00 V</span></div>
+        <input type="range" id="vgs" step="0.05">
+      </div>
+      <div class="slider-block">
+        <div class="slider-label"><b>V<sub>DS</sub></b><span class="val" id="vdsVal">0.00 V</span></div>
+        <input type="range" id="vds" step="0.05">
+      </div>
+      <div class="slider-block" id="vpBlock">
+        <div class="slider-label"><b>V<sub>P</sub> (pinch-off)</b><span class="val" id="vpVal">4.0 V</span></div>
+        <input type="range" id="vp" min="1" max="8" step="0.1" value="4">
+      </div>
+      <div class="slider-block" id="vtBlock" style="display:none;">
+        <div class="slider-label"><b>V<sub>T</sub> (threshold)</b><span class="val" id="vtVal">0.3 V</span></div>
+        <input type="range" id="vt" min="-1" max="2" step="0.05" value="0.3">
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Channel &amp; Material</h3>
+      <div class="slider-block">
+        <div class="slider-label"><b>Doping N<sub>d</sub></b><span class="val" id="ndVal">1.0×10¹⁷</span></div>
+        <input type="range" id="nd" min="16" max="18" step="0.05" value="17">
+      </div>
+      <div class="slider-block">
+        <div class="slider-label"><b>Thickness a</b><span class="val" id="aVal">0.30 µm</span></div>
+        <input type="range" id="a" min="0.1" max="1.0" step="0.01" value="0.3">
+      </div>
+      <div class="slider-block">
+        <div class="slider-label"><b>Length L</b><span class="val" id="lVal">1.50 µm</span></div>
+        <input type="range" id="l" min="0.5" max="5" step="0.05" value="1.5">
+      </div>
+      <div class="slider-block">
+        <div class="slider-label"><b>Width W</b><span class="val" id="wVal">20.0 µm</span></div>
+        <input type="range" id="w" min="5" max="50" step="0.5" value="20">
+      </div>
+      <div class="slider-block">
+        <div class="slider-label"><b>Mobility μ</b><span class="val" id="muVal">1350 cm²/Vs</span></div>
+        <input type="range" id="mu" min="200" max="8000" step="10" value="1350">
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Carrier Display</h3>
+      <div class="chip-group" id="carrierChips">
+        <span class="chip active" data-mode="all">All</span>
+        <span class="chip" data-mode="majority">Majority carriers</span>
+        <span class="chip" data-mode="conventional">Conventional I only</span>
+        <span class="chip" data-mode="none">Hide</span>
+      </div>
+      <div class="toggle-row" style="margin-top:12px;">
+        <span>Field vector overlay</span>
+        <label class="switch"><input type="checkbox" id="fieldToggle" checked><span class="track"></span></label>
+      </div>
+    </div>
+
+  </aside>
+
+  <main class="stage-wrap">
+
+    <div class="card" id="crossSectionCard">
+      <h2 id="stageTitle">Cross-Section — n-channel JFET</h2>
+      <div class="sub" id="stageSub">Depletion regions, pinch-off, and the electric-field / carrier-flow overlay update live with the bias sliders.</div>
+      <div class="toggle-row" id="textbookOverlayRow" style="padding:2px 2px 10px;">
+        <label style="display:flex; align-items:center; gap:10px; cursor:pointer; width:100%; justify-content:space-between;">
+          <span>Textbook Overlay <span style="color:var(--text-lo); font-weight:400;">(a, h(x), h₁, h₂, L, ΔL)</span></span>
+          <span class="switch"><input type="checkbox" id="textbookOverlay"><span class="track"></span></span>
+        </label>
+      </div>
+      <svg id="stage" viewBox="0 0 900 460" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div class="legend-row">
+        <div class="item"><span class="swatch" style="background:var(--blue)"></span>Weak field</div>
+        <div class="item"><span class="swatch" style="background:var(--cyan)"></span>Moderate field</div>
+        <div class="item"><span class="swatch" style="background:var(--amber)"></span>Strong field</div>
+        <div class="item"><span class="swatch" style="background:var(--red)"></span>Velocity-saturation / ΔL region</div>
+        <div class="item"><span class="swatch" style="background:var(--violet)"></span>Depletion region</div>
+      </div>
+    </div>
+
+    <div class="card" id="modeCard">
+      <h2>Operating-Mode Engine</h2>
+      <div class="mode-status">
+        <div class="device-line" id="msDevice">DEVICE: n-JFET</div>
+        <div class="mode-line">MODE: <span class="mode-badge cutoff" id="msBadge">Cutoff</span></div>
+        <div class="eq-box" id="msEquation">ID = 0</div>
+        <div class="readouts">
+          <div class="r"><div class="l">V<sub>DS(sat)</sub></div><div class="v" id="rVdsat">0.00 V</div></div>
+          <div class="r"><div class="l">I<sub>DSS</sub></div><div class="v" id="rIdss">0.00 mA</div></div>
+          <div class="r"><div class="l">g<sub>m</sub></div><div class="v" id="rGm">0.00 mS</div></div>
+        </div>
+        <div class="prof-banner" id="profBanner" style="display:none;"></div>
+      </div>
+    </div>
+
+    <div class="card" id="statusCard">
+      <h2>Live Status &amp; Telemetry</h2>
+      <div class="status-grid" id="liveStatus">
+        <div class="stat"><span class="lbl">Device</span><span class="val" id="stDevice">n-JFET</span></div>
+        <div class="stat"><span class="lbl">Mode</span><span class="val glow" id="stMode">Cutoff</span></div>
+        <div class="stat"><span class="lbl">V<sub>GS</sub></span><span class="val" id="stVgs">0.00 V</span></div>
+        <div class="stat"><span class="lbl">V<sub>DS</sub></span><span class="val" id="stVds">0.00 V</span></div>
+        <div class="stat"><span class="lbl">V<sub>DS(sat)</sub></span><span class="val" id="stVdsat">0.00 V</span></div>
+        <div class="stat"><span class="lbl">Pinch-off</span><span class="val warn" id="stPinchoff">INACTIVE</span></div>
+        <div class="stat"><span class="lbl">E-Field</span><span class="val" id="stEfield">0.00 kV/cm</span></div>
+        <div class="stat"><span class="lbl">ΔL</span><span class="val" id="stDL">0.00 µm</span></div>
+      </div>
+    </div>
+
+    <div class="card" id="insightCard">
+      <h2>What Changed Physically?</h2>
+      <details class="insight-item" open>
+        <summary>Auto-generated state summary</summary>
+        <div class="body" id="insightBody">Move a slider to see the physical consequences explained here.</div>
+      </details>
+      <details class="insight-item">
+        <summary>Depletion &amp; pinch-off, in words</summary>
+        <div class="body" id="insightStatic">
+          Reverse bias across the gate-channel junction widens the depletion region h(x) as it grows from source to drain.
+          When the local reverse bias reaches the pinch-off voltage, the depletion layers meet and the channel is squeezed
+          to zero thickness — carriers are swept through the resulting high-field ΔL region rather than drifting normally.
+        </div>
+      </details>
+    </div>
+
+  </main>
+</div>
+
+<script>
+/* ============================================================
+   STATE
+   ============================================================ */
+const state = {
+  device:'njfet',
+  VGS:0, VDS:0,
+  Vp0:4.0, VT:0.3,
+  NdExp:17, a:0.3, L:1.5, W:20, mu:1350,
+  fieldOn:true, carrierMode:'all', profMode:false, textbookOverlay:false
+};
+
+const DEVICE_META = {
+  njfet:   { label:'n-channel JFET (depletion)', short:'n-JFET',  polarity:1,  kind:'jfet',    carrier:'electron', mirror:'p-JFET' },
+  pjfet:   { label:'p-channel JFET (depletion)', short:'p-JFET',  polarity:-1, kind:'jfet',    carrier:'hole',     mirror:'n-JFET' },
+  nmesfet: { label:'n-MESFET (depletion)',       short:'n-MESFET',polarity:1,  kind:'mesfet',  carrier:'electron', mirror:null },
+  emesfet: { label:'Enhancement MESFET (n)',     short:'E-MESFET',polarity:1,  kind:'mesfet',  carrier:'electron', mirror:null, enhancement:true },
+  hemt:    { label:'AlGaAs/GaAs HEMT',           short:'HEMT',    polarity:1,  kind:'hemt',    carrier:'2-DEG',   mirror:null, enhancement:false }
+};
+
+/* ============================================================
+   NUMERICAL ENGINE
+   ============================================================ */
+function currentMeta(){ return DEVICE_META[state.device]; }
+
+function calcIDSS(){
+  const muFactor = state.mu/1350;
+  const geomFactor = state.W/state.L;
+  const aFactor = state.a*state.a;
+  const ndFactor = Math.pow(10, state.NdExp-17);
+  let idss = 2.1*muFactor*geomFactor*aFactor*ndFactor;
+  return Math.max(0.05, idss);
+}
+
+function gateOffVoltage(){
+  const meta = currentMeta();
+  if (meta.enhancement) return state.VT;
+  return meta.polarity>0 ? -state.Vp0 : state.Vp0;
+}
+
+function calculateJfetCurrent(){
+  const meta = currentMeta();
+  const IDSS = calcIDSS();
+  const VGSoff = gateOffVoltage();
+  const Vnorm = state.Vp0;
+  const Von = meta.polarity*(state.VGS - VGSoff);
+  const vdsMag = meta.polarity*state.VDS;
+  let VDSsat = Math.max(Von, 0);
+
+  let region, ID;
+  if (Von <= 0){
+    region='cutoff'; ID=0;
+  } else if (vdsMag < VDSsat){
+    region='ohmic';
+    const norm = (2*Von*Math.max(vdsMag,0) - vdsMag*vdsMag)/(Vnorm*Vnorm);
+    ID = IDSS*Math.max(norm,0);
+  } else {
+    region='saturation';
+    const lambda = 0.02;
+    ID = IDSS*(Von*Von/(Vnorm*Vnorm))*(1+lambda*Math.max(vdsMag-VDSsat,0));
+  }
+  const gm = Von>0 ? 2*IDSS*Von/(Vnorm*Vnorm) : 0;
+  return { region, ID, IDSS, VGSoff, Von, vdsMag, VDSsat, Vnorm };
+}
+function calculateTransconductance(op){
+  return op.Von>0 ? (2*op.IDSS*op.Von/(op.Vnorm*op.Vnorm)) : 0;
+}
+
+/* ============================================================
+   SLIDER <-> DEVICE WIRING
+   ============================================================ */
+const els = {};
+['vgs','vds','vp','vt','nd','a','l','w','mu'].forEach(id=> els[id]=document.getElementById(id));
+const deviceSelect = document.getElementById('deviceSelect');
+const profModeInput = document.getElementById('profMode');
+const fieldToggleInput = document.getElementById('fieldToggle');
+
+function configureSlidersForDevice(){
+  const meta = currentMeta();
+  document.getElementById('vtBlock').style.display = meta.enhancement ? 'block' : 'none';
+  document.getElementById('vpBlock').style.display = meta.enhancement ? 'none' : 'block';
+
+  if (meta.polarity>0){
+    els.vgs.min = meta.enhancement ? (state.VT-1).toFixed(2) : -state.Vp0-0.5;
+    els.vgs.max = meta.enhancement ? (state.VT+3).toFixed(2) : 0.5;
+    els.vds.min = 0; els.vds.max = 10;
+    if(state.VDS<0) state.VDS=0;
+  } else {
+    els.vgs.min = -0.5; els.vgs.max = state.Vp0+0.5;
+    els.vds.min = -10; els.vds.max = 0;
+    if(state.VDS>0) state.VDS=0;
+  }
+  els.vgs.value = state.VGS; els.vds.value = state.VDS;
+  document.getElementById('stageTitle').textContent = 'Cross-Section — '+meta.label;
+}
+
+deviceSelect.addEventListener('change', e=>{
+  state.device = e.target.value;
+  const meta = currentMeta();
+  state.VGS = meta.enhancement ? state.VT+0.8 : meta.polarity>0 ? -state.Vp0*0.4 : state.Vp0*0.4;
+  state.VDS = meta.polarity>0 ? 4 : -4;
+  configureSlidersForDevice();
+  fullUpdate();
+});
+profModeInput.addEventListener('change', e=>{ state.profMode = e.target.checked; fullUpdate(); });
+fieldToggleInput.addEventListener('change', e=>{ state.fieldOn = e.target.checked; fullUpdate(); });
+const textbookOverlayInput = document.getElementById('textbookOverlay');
+textbookOverlayInput.addEventListener('change', e=>{ state.textbookOverlay = e.target.checked; fullUpdate(); });
+
+document.getElementById('carrierChips').addEventListener('click', e=>{
+  if(!e.target.classList.contains('chip')) return;
+  [...document.querySelectorAll('#carrierChips .chip')].forEach(c=>c.classList.remove('active'));
+  e.target.classList.add('active');
+  state.carrierMode = e.target.dataset.mode;
+});
+
+els.vgs.addEventListener('input', e=>{ state.VGS=parseFloat(e.target.value); fullUpdate(); });
+els.vds.addEventListener('input', e=>{ state.VDS=parseFloat(e.target.value); fullUpdate(); });
+els.vp.addEventListener('input', e=>{ state.Vp0=parseFloat(e.target.value); configureSlidersForDevice(); fullUpdate(); });
+els.vt.addEventListener('input', e=>{ state.VT=parseFloat(e.target.value); configureSlidersForDevice(); fullUpdate(); });
+els.nd.addEventListener('input', e=>{ state.NdExp=parseFloat(e.target.value); fullUpdate(); });
+els.a.addEventListener('input', e=>{ state.a=parseFloat(e.target.value); fullUpdate(); });
+els.l.addEventListener('input', e=>{ state.L=parseFloat(e.target.value); fullUpdate(); });
+els.w.addEventListener('input', e=>{ state.W=parseFloat(e.target.value); fullUpdate(); });
+els.mu.addEventListener('input', e=>{ state.mu=parseFloat(e.target.value); fullUpdate(); });
+
+/* ============================================================
+   SVG CROSS-SECTION GEOMETRY
+   ============================================================ */
+const svg = document.getElementById('stage');
+const NS='http://www.w3.org/2000/svg';
+function el(tag,attrs){ const n=document.createElementNS(NS,tag); for(const k in attrs) n.setAttribute(k,attrs[k]); return n; }
+
+const STAGE = { x0:120, x1:780, yMid:230, chanHalf:70, subTop:340, subBot:420 };
+
+let particles = [];
+let rafId = null;
+
+function buildStaticFrame(){
+  svg.innerHTML='';
+  const defs = el('defs',{});
+  const glow = el('filter',{id:'glow', x:'-60%', y:'-60%', width:'220%', height:'220%'});
+  glow.appendChild(el('feGaussianBlur',{stdDeviation:'4', result:'b'}));
+  const merge = el('feMerge',{});
+  merge.appendChild(el('feMergeNode',{in:'b'})); merge.appendChild(el('feMergeNode',{in:'SourceGraphic'}));
+  glow.appendChild(merge);
+  defs.appendChild(glow);
+
+  const glowStrong = el('filter',{id:'glowStrong', x:'-80%', y:'-80%', width:'260%', height:'260%'});
+  glowStrong.appendChild(el('feGaussianBlur',{stdDeviation:'8', result:'b'}));
+  const merge2 = el('feMerge',{});
+  merge2.appendChild(el('feMergeNode',{in:'b'})); merge2.appendChild(el('feMergeNode',{in:'SourceGraphic'}));
+  glowStrong.appendChild(merge2);
+  defs.appendChild(glowStrong);
+
+  const bodyTop = STAGE.yMid + STAGE.chanHalf;
+  const bodyBot = STAGE.subBot + 24;
+  const semiGrad = el('linearGradient',{id:'semiBodyGrad', gradientUnits:'userSpaceOnUse',
+    x1:'0', y1:String(bodyTop-30), x2:'0', y2:String(bodyBot)});
+  semiGrad.appendChild(el('stop',{offset:'0%','stop-color':'#1a2a44'}));
+  semiGrad.appendChild(el('stop',{offset:'30%','stop-color':'#111b30'}));
+  semiGrad.appendChild(el('stop',{offset:'100%','stop-color':'#070b14'}));
+  defs.appendChild(semiGrad);
+
+  const channelGrad = el('linearGradient',{id:'channelGrad', gradientUnits:'userSpaceOnUse',
+    x1:'0', y1:String(STAGE.yMid-STAGE.chanHalf), x2:'0', y2:String(STAGE.yMid+STAGE.chanHalf)});
+  channelGrad.appendChild(el('stop',{offset:'0%','stop-color':'#1a3555'}));
+  channelGrad.appendChild(el('stop',{offset:'50%','stop-color':'#2a4a7a'}));
+  channelGrad.appendChild(el('stop',{offset:'100%','stop-color':'#1a3555'}));
+  defs.appendChild(channelGrad);
+
+  svg.appendChild(defs);
+  svg.appendChild(el('rect',{x:0,y:0,width:900,height:460,fill:'transparent'}));
+
+  // Unified semiconductor body
+  svg.appendChild(el('rect',{x:STAGE.x0-40,y:bodyTop-8,width:(STAGE.x1-STAGE.x0)+80,height:bodyBot-bodyTop+8,
+    fill:'url(#semiBodyGrad)', stroke:'var(--line)', rx:4}));
+  // Epitaxial seam
+  svg.appendChild(el('line',{x1:STAGE.x0-40,y1:bodyTop-2,x2:STAGE.x1+40,y2:bodyTop-2,
+    stroke:'rgba(77,163,255,.12)','stroke-width':1.2}));
+  const subLabel = el('text',{x:450,y:STAGE.subBot+16,'text-anchor':'middle',fill:'var(--text-lo)',
+    'font-family':'var(--mono)','font-size':'10'});
+  subLabel.textContent='Semi-insulating substrate (GaAs / Si)';
+  svg.appendChild(subLabel);
+
+  ['gGate','gChannelBody','gDepletion','gField','gCarriers','gLabels','gTextbookOverlay','gDLGlow'].forEach(id=>{
+    svg.appendChild(el('g',{id}));
+  });
+}
+buildStaticFrame();
+
+function colorFor(fieldNorm){
+  if (fieldNorm<0.3) return 'var(--blue)';
+  if (fieldNorm<0.55) return 'var(--cyan)';
+  if (fieldNorm<0.8) return 'var(--amber)';
+  return 'var(--red)';
+}
+
+function drawSourceDrainGate(meta){
+  const g = document.getElementById('gLabels');
+  g.innerHTML='';
+  g.appendChild(el('rect',{x:STAGE.x0-36,y:STAGE.yMid-STAGE.chanHalf-6,width:34,height:(STAGE.chanHalf*2)+12,
+    fill:'#1a2434',stroke:'var(--blue)','stroke-width':1.4,rx:3}));
+  const sTxt = el('text',{x:STAGE.x0-19,y:STAGE.yMid+4,'text-anchor':'middle',fill:'var(--text-hi)','font-family':'var(--mono)','font-size':'12','font-weight':'700'});
+  sTxt.textContent='S'; g.appendChild(sTxt);
+  g.appendChild(el('rect',{x:STAGE.x1+2,y:STAGE.yMid-STAGE.chanHalf-6,width:34,height:(STAGE.chanHalf*2)+12,
+    fill:'#1a2434',stroke:'var(--red)','stroke-width':1.4,rx:3}));
+  const dTxt = el('text',{x:STAGE.x1+19,y:STAGE.yMid+4,'text-anchor':'middle',fill:'var(--text-hi)','font-family':'var(--mono)','font-size':'12','font-weight':'700'});
+  dTxt.textContent='D'; g.appendChild(dTxt);
+
+  let gateLabel = 'Gate (p–n junction)';
+  if(meta.kind==='mesfet') gateLabel = 'Schottky metal gate';
+  if(meta.kind==='hemt') gateLabel = 'Gate (HEMT / 2-DEG)';
+  if(meta.kind==='jfet' && meta.polarity<0) gateLabel = 'Gate (n–p junction)';
+
+  const axisLabel = el('text',{x:450, y:STAGE.yMid+STAGE.chanHalf+34, 'text-anchor':'middle', fill:'var(--text-lo)',
+    'font-family':'var(--mono)','font-size':'10.5'});
+  axisLabel.textContent = meta.kind==='jfet'
+    ? 'Symmetric p-n / n-p junction gates — depletion grows from both faces'
+    : meta.kind==='hemt'
+    ? 'Schottky gate & heterojunction — 2-DEG confined to quantum well'
+    : 'Schottky metal gate (top) — depletion grows from a single face';
+  g.appendChild(axisLabel);
+}
+
+function channelProfile(op, meta, nSamples){
+  const pts = [];
+  const Lprime = op.vdsMag>op.VDSsat && op.VDSsat>0 ? (op.VDSsat/op.vdsMag) : 1;
+  for(let i=0;i<=nSamples;i++){
+    const xf = i/nSamples;
+    let vLocal, field;
+    if (xf <= Lprime){
+      vLocal = op.VDSsat*(xf/Math.max(Lprime,1e-6));
+      field = op.vdsMag/Math.max(state.L,0.1);
+    } else {
+      vLocal = op.VDSsat + (op.vdsMag-op.VDSsat)* ((xf-Lprime)/Math.max(1-Lprime,1e-6));
+      field = (op.vdsMag-op.VDSsat)/Math.max((1-Lprime)*0.15,0.05) + op.vdsMag/Math.max(state.L,0.1);
+    }
+    if (!Number.isFinite(field)) field = 0;
+    let fDep = Math.min(1, Math.max(0, (op.Von + vLocal)/op.Vnorm));
+    if (!Number.isFinite(fDep)) fDep = 0;
+    pts.push({ xf, fDep, field });
+  }
+  const maxField = Math.max(...pts.map(p=>p.field), 0.001);
+  pts.forEach(p=>{
+    let fn = p.field/maxField*(op.region==='saturation'?1:0.6);
+    p.fieldNorm = Number.isFinite(fn) ? Math.min(1, fn) : 0;
+  });
+  return { pts, Lprime };
+}
+
+function safePoint(pts, idxFraction){
+  if (!Array.isArray(pts) || pts.length===0) return { xf:0, fDep:0, field:0, fieldNorm:0 };
+  const clampedFrac = Number.isFinite(idxFraction) ? Math.min(1, Math.max(0, idxFraction)) : 0;
+  const idx = Math.min(pts.length-1, Math.max(0, Math.floor(clampedFrac*(pts.length-1))));
+  return pts[idx] || { xf:0, fDep:0, field:0, fieldNorm:0 };
+}
+
+function drawChannelAndDepletion(op, meta){
+  const gBody = document.getElementById('gChannelBody');
+  const gDep = document.getElementById('gDepletion');
+  const gGate = document.getElementById('gGate');
+  const gDL = document.getElementById('gDLGlow');
+  gBody.innerHTML=''; gDep.innerHTML=''; gGate.innerHTML=''; gDL.innerHTML='';
+
+  const nSeg = 48;
+  const { pts, Lprime } = channelProfile(op, meta, nSeg);
+  const xSpan = STAGE.x1-STAGE.x0;
+  const halfMax = STAGE.chanHalf;
+
+  // Channel background
+  gBody.appendChild(el('rect',{x:STAGE.x0,y:STAGE.yMid-halfMax,width:xSpan,height:halfMax*2,
+    fill:'url(#channelGrad)', stroke:'var(--line)', rx:2}));
+  const chLbl = el('text',{x:STAGE.x0+14,y:STAGE.yMid+4,fill:'var(--text-lo)',
+    'font-family':'var(--mono)','font-size':'9.5',opacity:'0.55'});
+  chLbl.textContent = meta.kind==='hemt' ? '2-DEG channel' : 'N-GaAs channel';
+  gBody.appendChild(chLbl);
+
+  const single = meta.kind==='mesfet' || meta.kind==='hemt';
+
+  // Depletion polygons
+  const topPts = pts.map(p=>{
+    const x = STAGE.x0 + p.xf*xSpan;
+    const h = p.fDep*halfMax*(single?1.7:1);
+    return [x, STAGE.yMid-halfMax + Math.min(h, halfMax*1.98)];
+  });
+  let topPath = 'M '+STAGE.x0+','+(STAGE.yMid-halfMax)+' L '+topPts.map(p=>p.join(',')).join(' L ')+
+    ' L '+STAGE.x1+','+(STAGE.yMid-halfMax)+' Z';
+  gDep.appendChild(el('path',{d:topPath, fill:'rgba(155,123,255,.28)', stroke:'var(--violet)','stroke-width':1}));
+
+  if (!single){
+    const botPts = pts.map(p=>{
+      const x = STAGE.x0 + p.xf*xSpan;
+      const h = p.fDep*halfMax;
+      return [x, STAGE.yMid+halfMax - Math.min(h, halfMax*1.98)];
+    });
+    let botPath = 'M '+STAGE.x0+','+(STAGE.yMid+halfMax)+' L '+botPts.map(p=>p.join(',')).join(' L ')+
+      ' L '+STAGE.x1+','+(STAGE.yMid+halfMax)+' Z';
+    gDep.appendChild(el('path',{d:botPath, fill:'rgba(155,123,255,.28)', stroke:'var(--violet)','stroke-width':1}));
+  }
+
+  // Gate
+  let gateColor = 'var(--violet)';
+  if(meta.kind==='mesfet') gateColor = '#c8a24a';
+  if(meta.kind==='hemt') gateColor = '#c8a24a';
+  gGate.appendChild(el('rect',{x:STAGE.x0,y:STAGE.yMid-halfMax-14,width:xSpan,height:12,
+    fill: gateColor, opacity:.85, rx:2}));
+  const gLbl = el('text',{x:STAGE.x0+8,y:STAGE.yMid-halfMax-4,fill:'#050810','font-family':'var(--mono)','font-size':'9','font-weight':'700'});
+  gLbl.textContent='G'; gGate.appendChild(gLbl);
+  let gateLabel = 'Gate (p–n junction)';
+  if(meta.kind==='mesfet' || meta.kind==='hemt') gateLabel = 'Schottky metal gate';
+  if(meta.kind==='jfet' && meta.polarity<0) gateLabel = 'Gate (n–p junction)';
+  const gateName = el('text',{x:STAGE.x0+22,y:STAGE.yMid-halfMax-4,
+    fill: (meta.kind==='mesfet'||meta.kind==='hemt')?'#3a2c08':'#f3eddd','font-family':'var(--mono)','font-size':'8.5',opacity:'0.85'});
+  gateName.textContent = gateLabel;
+  gGate.appendChild(gateName);
+  if(!single && meta.kind!=='hemt'){
+    gGate.appendChild(el('rect',{x:STAGE.x0,y:STAGE.yMid+halfMax+2,width:xSpan,height:12,
+      fill:'var(--violet)', opacity:.85, rx:2}));
+  }
+
+  // ΔL / Velocity saturation glow
+  if (op.region==='saturation' && op.vdsMag>op.VDSsat && Number.isFinite(Lprime)){
+    const xPinch = STAGE.x0 + Lprime*xSpan;
+    const glowWidth = STAGE.x1 - xPinch;
+    if (glowWidth > 2) {
+      const grad = el('linearGradient',{id:'dlGlow', x1:'0', y1:'0', x2:'1', y2:'0'});
+      grad.appendChild(el('stop',{offset:'0%','stop-color':'rgba(255,92,92,0.6)'}));
+      grad.appendChild(el('stop',{offset:'100%','stop-color':'rgba(255,92,92,0)'}));
+      const defs = svg.querySelector('defs');
+      defs.appendChild(grad);
+      gDL.appendChild(el('rect',{x:xPinch,y:STAGE.yMid-halfMax,width:glowWidth,height:halfMax*2,
+        fill:'url(#dlGlow)', filter:'url(#glowStrong)'}));
+      gDep.appendChild(el('line',{x1:xPinch,y1:STAGE.yMid-halfMax-16,x2:xPinch,y2:STAGE.yMid+halfMax+ (single?4:16),
+        stroke:'var(--red)','stroke-width':1.4,'stroke-dasharray':'4,3'}));
+      const pinchLbl = el('text',{x:xPinch,y:STAGE.yMid-halfMax-20,'text-anchor':'middle',fill:'var(--red)',
+        'font-family':'var(--mono)','font-size':'10','font-weight':'700'});
+      pinchLbl.textContent='pinch-off'; gDep.appendChild(pinchLbl);
+      const dlLbl = el('text',{x:(xPinch+STAGE.x1)/2,y:STAGE.yMid+halfMax+ (single?24:34),'text-anchor':'middle',
+        fill:'var(--red)','font-family':'var(--mono)','font-size':'10'});
+      dlLbl.textContent='ΔL — velocity-sat. region';
+      gDep.appendChild(dlLbl);
+    }
+  }
+
+  return { pts, Lprime, xSpan, halfMax, single };
+}
+
+function drawTextbookOverlay(op, geom){
+  const g = document.getElementById('gTextbookOverlay');
+  g.innerHTML='';
+  if(!state.textbookOverlay) return;
+  const { xSpan, halfMax, Lprime } = geom;
+  const x0=STAGE.x0, x1=STAGE.x1, yMid=STAGE.yMid;
+  const YEL='#fbe94a';
+  const dash={stroke:'var(--cyan)','stroke-width':1,'stroke-dasharray':'3,3',fill:'none'};
+  const lbl=(x,y,text,anchor)=>{
+    const t=el('text',{x,y,'text-anchor':anchor||'middle',fill:YEL,
+      'font-family':'var(--mono)','font-size':'10.5','font-weight':'600'});
+    t.textContent=text; g.appendChild(t);
+  };
+
+  const xA = x0-55;
+  g.appendChild(el('line',Object.assign({x1:xA,y1:yMid-halfMax,x2:xA,y2:yMid+halfMax},dash)));
+  g.appendChild(el('line',Object.assign({x1:xA-5,y1:yMid-halfMax,x2:xA+5,y2:yMid-halfMax},dash)));
+  g.appendChild(el('line',Object.assign({x1:xA-5,y1:yMid+halfMax,x2:xA+5,y2:yMid+halfMax},dash)));
+  lbl(xA-12, yMid+4, 'a', 'end');
+
+  const rowY = yMid+halfMax+50;
+  lbl(x0, rowY, 'h₁');
+  lbl((x0+x1)/2, rowY, '↑ h(x)');
+  lbl(x1, rowY, 'h₂');
+
+  const lY = rowY+26;
+  g.appendChild(el('line',Object.assign({x1:x0,y1:lY,x2:x1,y2:lY},dash)));
+  g.appendChild(el('line',Object.assign({x1:x0,y1:lY-5,x2:x0,y2:lY+5},dash)));
+  g.appendChild(el('line',Object.assign({x1:x1,y1:lY-5,x2:x1,y2:lY+5},dash)));
+  lbl((x0+x1)/2, lY-8, 'L');
+
+  if (op.region==='saturation' && op.vdsMag>op.VDSsat && Number.isFinite(Lprime)){
+    const xPinch = x0 + Lprime*xSpan;
+    const dlY = lY+22;
+    g.appendChild(el('line',Object.assign({x1:xPinch,y1:dlY,x2:x1,y2:dlY},dash)));
+    g.appendChild(el('line',Object.assign({x1:xPinch,y1:dlY-5,x2:xPinch,y2:dlY+5},dash)));
+    g.appendChild(el('line',Object.assign({x1:x1,y1:dlY-5,x2:x1,y2:dlY+5},dash)));
+    lbl((xPinch+x1)/2, dlY-8, 'ΔL');
+  }
+}
+
+function drawFieldVectors(op, geom){
+  const g = document.getElementById('gField');
+  g.innerHTML='';
+  if(!state.fieldOn) return;
+  const { pts, xSpan, halfMax } = geom;
+  const arrowCount = 20;
+  for(let i=1;i<arrowCount;i++){
+    const xf = i/arrowCount;
+    const p = safePoint(pts, xf);
+    const x = STAGE.x0 + xf*xSpan;
+    const len = 6 + p.fieldNorm*24;
+    const color = colorFor(p.fieldNorm);
+    const y = STAGE.yMid;
+    const dir = currentMeta().polarity>0 ? 1 : -1;
+    const x2 = x + dir*len;
+    const arrow = el('line',{x1:x-dir*len*0.15,y1:y,x2:x2,y2:y,stroke:color,'stroke-width':2.4,
+      'marker-end':'url(#arrowhead)', filter: p.fieldNorm>0.6?'url(#glow)':''});
+    g.appendChild(arrow);
+  }
+  if(!svg.querySelector('#arrowhead')){
+    const defs = svg.querySelector('defs');
+    const marker = el('marker',{id:'arrowhead',markerWidth:'6',markerHeight:'6',refX:'4',refY:'3',orient:'auto'});
+    const path = el('path',{d:'M0,0 L6,3 L0,6 Z', fill:'context-stroke'});
+    marker.appendChild(path); defs.appendChild(marker);
+  }
+}
+
+function initParticles(){
+  particles = [];
+  const n = 50;
+  for(let i=0;i<n;i++){
+    particles.push({ t: Math.random(), lane: (Math.random()-0.5)*0.8, speed: 0.003 + Math.random()*0.005 });
+  }
+}
+initParticles();
+
+function drawCarrierFrame(op, geom){
+  const g = document.getElementById('gCarriers');
+  g.innerHTML='';
+  if(state.carrierMode==='none') return;
+  const meta = currentMeta();
+  const { pts, xSpan, halfMax, single } = geom;
+  const showMajority = state.carrierMode==='all' || state.carrierMode==='majority';
+  const showConventional = state.carrierMode==='all' || state.carrierMode==='conventional';
+
+  const isElectron = meta.carrier === 'electron' || meta.carrier === '2-DEG';
+  const color = isElectron ? 'var(--cyan)' : 'var(--amber)';
+  const isHole = meta.carrier === 'hole';
+
+  if(showMajority){
+    particles.forEach(pt=>{
+      const p = safePoint(pts, pt.t);
+      const openHalf = halfMax*(1-p.fDep*0.94) * (single?1:1);
+      const x = STAGE.x0 + pt.t*xSpan;
+      let yOff = pt.lane*openHalf;
+      let y;
+      if(meta.kind==='hemt'){
+        y = STAGE.yMid - halfMax*0.7 + pt.lane*6;
+      } else if(single){
+        y = (STAGE.yMid+halfMax-openHalf*0.9) + yOff*0.4;
+      } else {
+        y = STAGE.yMid + yOff*0.6;
+      }
+      if (Math.abs(yOff) <= Math.max(openHalf,1.5) || meta.kind==='hemt'){
+        const r = meta.kind==='hemt' ? 3.2 : 2.8;
+        const dot = el('circle',{cx:x,cy:y,r:r,fill:color,opacity:0.9, filter: meta.kind==='hemt'?'url(#glow)':''});
+        g.appendChild(dot);
+      }
+    });
+  }
+  if(showConventional){
+    const y = STAGE.yMid - halfMax - 26;
+    const dir = meta.polarity>0 ? -1 : 1;
+    const x1 = dir>0 ? STAGE.x0+10 : STAGE.x1-10;
+    const x2 = dir>0 ? STAGE.x1-10 : STAGE.x0+10;
+    g.appendChild(el('line',{x1,y1:y,x2,y2:y,stroke:'var(--text-hi)','stroke-width':1.6,'marker-end':'url(#arrowhead)'}));
+    const lbl = el('text',{x:(x1+x2)/2,y:y-8,'text-anchor':'middle',fill:'var(--text-hi)','font-family':'var(--mono)','font-size':'10'});
+    lbl.textContent = 'conventional I'+(meta.polarity>0?' (D→S)':' (S→D)');
+    g.appendChild(lbl);
+  }
+}
+
+function animate(){
+  const op = calculateJfetCurrent();
+  const meta = currentMeta();
+  const geom = { pts: lastGeomPts, xSpan: STAGE.x1-STAGE.x0, halfMax: STAGE.chanHalf, single: meta.kind==='mesfet' || meta.kind==='hemt' };
+  const isHole = meta.carrier === 'hole';
+  const is2DEG = meta.carrier === '2-DEG';
+
+  particles.forEach(pt=>{
+    const p = safePoint(geom.pts, pt.t);
+    const speedBoost = 1 + (Number.isFinite(p.fieldNorm) ? p.fieldNorm : 0)*2.8;
+    let dir = 1;
+    if(isHole) dir = -1;
+    if(meta.polarity < 0) dir = -1;
+    // For 2-DEG, high speed
+    if(is2DEG) dir = 1;
+    let baseSpeed = 0.0032 + Math.min(op.ID,10)*0.0005;
+    if(is2DEG) baseSpeed *= 2.5;
+    pt.t += dir * baseSpeed * speedBoost;
+    if(!Number.isFinite(pt.t) || pt.t>1 || pt.t<0){ pt.t = Math.random(); pt.lane = (Math.random()-0.5)*0.8; }
+  });
+  drawCarrierFrame(op, geom);
+  rafId = requestAnimationFrame(animate);
+}
+
+let lastGeomPts = null;
+
+/* ============================================================
+   MODE ENGINE / TEXT PANELS
+   ============================================================ */
+function fmtVolt(v){ return (v>=0?'':'') + v.toFixed(2); }
+
+function equationFor(op, meta){
+  if (meta.enhancement){
+    if (op.region==='cutoff') return 'ID = 0   (VGS < VT)';
+    if (op.region==='ohmic')  return 'ID = k[2(VGS−VT)VDS − VDS²]';
+    return 'ID = k(VGS − VT)²';
+  }
+  if (meta.kind==='hemt'){
+    if (op.region==='cutoff') return 'ID = 0   (2-DEG depleted)';
+    if (op.region==='ohmic')  return 'ID = q·μ·n_s·(W/L)·VDS';
+    return 'ID = q·μ·n_s·(W/L)·(VGS−VT)';
+  }
+  if (op.region==='cutoff') return 'ID = 0   (channel fully depleted)';
+  if (op.region==='ohmic')  return 'ID = IDSS[2(VGS/Vp)(VDS/Vp) − (VDS/Vp)²]';
+  return "ID' = IDSS(1 − VGS/Vp)² · (1 + λ·VDS)";
+}
+
+function insightText(op, meta){
+  const lines = [];
+  if(op.region==='cutoff'){
+    lines.push('Gate reverse bias exceeds the pinch-off / threshold voltage — the two depletion regions have merged across the entire channel and no drain current can flow.');
+  } else if(op.region==='ohmic'){
+    lines.push('The channel behaves like a voltage-controlled resistor: depletion width grows smoothly from source to drain but never reaches full pinch-off.');
+    lines.push('Increasing V<sub>DS</sub> further will widen the drain-side depletion region and steepen the field there.');
+  } else {
+    lines.push('The channel has pinched off near the drain — a high-field ΔL region has formed where carriers are swept through at their saturation velocity rather than drifting normally.');
+    lines.push('Further increases in V<sub>DS</sub> mostly drop across ΔL and only weakly raise I<sub>D</sub> (channel-length modulation).');
+  }
+  if (state.fieldOn) lines.push('Field arrows show the intensification toward the drain — strongest exactly where the channel narrows.');
+  return '<ul>'+lines.map(l=>'<li>'+l+'</li>').join('')+'</ul>';
+}
+
+function professorText(meta, op){
+  if(meta.kind!=='jfet') {
+    return 'Professor Mode applies to JFET depletion-mode polarity pairs. Switch device to n-JFET or p-JFET to see the mirrored convention.';
+  }
+  const isN = meta.polarity>0;
+  return isN
+    ? '<b>n-channel (current):</b> VGS ≤ 0, Vp &lt; 0, electrons flow S→D, conventional I flows D→S.<br><b>p-channel (mirror):</b> VGS ≥ 0, Vp &gt; 0, holes flow S→D, conventional I flows S→D.'
+    : '<b>p-channel (current):</b> VGS ≥ 0, Vp &gt; 0, holes flow S→D, conventional I flows S→D.<br><b>n-channel (mirror):</b> VGS ≤ 0, Vp &lt; 0, electrons flow S→D, conventional I flows D→S.';
+}
+
+function updateStatusPanel(op, meta){
+  document.getElementById('stDevice').textContent = meta.short;
+  const modeStr = op.region==='cutoff'?'Cutoff':op.region==='ohmic'?'Ohmic':'Saturation';
+  document.getElementById('stMode').textContent = modeStr;
+  document.getElementById('stVgs').textContent = fmtVolt(state.VGS)+' V';
+  document.getElementById('stVds').textContent = fmtVolt(state.VDS)+' V';
+  document.getElementById('stVdsat').textContent = op.VDSsat.toFixed(2)+' V';
+  const pinchActive = op.region==='saturation' && op.vdsMag>op.VDSsat;
+  document.getElementById('stPinchoff').textContent = pinchActive ? 'ACTIVE' : 'INACTIVE';
+  document.getElementById('stPinchoff').className = 'val '+(pinchActive?'danger':'warn');
+  const efield = (op.vdsMag / state.L * 1.2).toFixed(2);
+  document.getElementById('stEfield').textContent = efield+' kV/cm';
+  let dL = 0;
+  if(pinchActive && Number.isFinite(op.vdsMag) && Number.isFinite(op.VDSsat)){
+    dL = ((op.vdsMag - op.VDSsat)/op.vdsMag * state.L);
+    if(!Number.isFinite(dL)) dL = 0;
+  }
+  document.getElementById('stDL').textContent = dL.toFixed(2)+' µm';
+}
+
+function fullUpdate(){
+  const meta = currentMeta();
+  const op = calculateJfetCurrent();
+  const geomInfo = drawChannelAndDepletion(op, meta);
+  lastGeomPts = geomInfo.pts;
+  drawSourceDrainGate(meta);
+  drawFieldVectors(op, geomInfo);
+  drawTextbookOverlay(op, geomInfo);
+
+  document.getElementById('hdrVgs').textContent = fmtVolt(state.VGS);
+  document.getElementById('hdrVds').textContent = fmtVolt(state.VDS);
+  document.getElementById('hdrId').textContent = op.ID.toFixed(2);
+  document.getElementById('hdrMode').textContent = op.region.toUpperCase();
+
+  document.getElementById('vgsVal').textContent = fmtVolt(state.VGS)+' V';
+  document.getElementById('vdsVal').textContent = fmtVolt(state.VDS)+' V';
+  document.getElementById('vpVal').textContent = state.Vp0.toFixed(1)+' V';
+  document.getElementById('vtVal').textContent = state.VT.toFixed(2)+' V';
+  document.getElementById('ndVal').textContent = (Math.pow(10,state.NdExp-17)).toFixed(2)+'×10¹⁷';
+  document.getElementById('aVal').textContent = state.a.toFixed(2)+' µm';
+  document.getElementById('lVal').textContent = state.L.toFixed(2)+' µm';
+  document.getElementById('wVal').textContent = state.W.toFixed(1)+' µm';
+  document.getElementById('muVal').textContent = Math.round(state.mu)+' cm²/Vs';
+
+  document.getElementById('msDevice').textContent = 'DEVICE: '+meta.short;
+  const badge = document.getElementById('msBadge');
+  badge.textContent = op.region==='cutoff'?'Cutoff':op.region==='ohmic'?'Ohmic / Nonsaturation':'Saturation';
+  badge.className = 'mode-badge '+(op.region==='cutoff'?'cutoff':op.region==='ohmic'?'ohmic':'sat');
+  document.getElementById('msEquation').textContent = equationFor(op, meta);
+  document.getElementById('rVdsat').textContent = op.VDSsat.toFixed(2)+' V';
+  document.getElementById('rIdss').textContent = op.IDSS.toFixed(2)+' mA';
+  document.getElementById('rGm').textContent = calculateTransconductance(op).toFixed(2)+' mS';
+
+  document.getElementById('insightBody').innerHTML = insightText(op, meta);
+
+  const profBanner = document.getElementById('profBanner');
+  if(state.profMode){
+    profBanner.style.display='block';
+    profBanner.innerHTML = professorText(meta, op);
+  } else {
+    profBanner.style.display='none';
+  }
+
+  updateStatusPanel(op, meta);
+}
+
+configureSlidersForDevice();
+fullUpdate();
+if(!rafId) animate();
+</script>
+</body>
+</html>

@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced Effects &amp; HEMT — JFET Physics Lab</title>
+<style>
+/* ============================================================
+   TOKEN SYSTEM (shared with the Channel Geometry & Field module
+   so the two lab pages read as one project)
+   ============================================================ */
+:root{
+  --bg:#070a10;
+  --bg-panel:#0d1320;
+  --bg-panel-2:#101828;
+  --line:rgba(140,180,255,.14);
+  --line-soft:rgba(140,180,255,.07);
+  --blue:#4da3ff;
+  --cyan:#29e0d6;
+  --violet:#9b7bff;
+  --amber:#f5b942;
+  --red:#ff5c5c;
+  --yellow:#fbe94a;
+  --text-hi:#e8edf7;
+  --text-lo:#7c8aa8;
+  --mono: ui-monospace, SFMono-Regular, "IBM Plex Mono", Menlo, Consolas, monospace;
+  --sans: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+*{box-sizing:border-box;}
+html,body{
+  margin:0; padding:0; min-height:100%;
+  background:
+    radial-gradient(1200px 700px at 15% -10%, rgba(77,163,255,.08), transparent 60%),
+    radial-gradient(900px 600px at 110% 10%, rgba(155,123,255,.07), transparent 55%),
+    var(--bg);
+  color:var(--text-hi);
+  font-family:var(--sans);
+  -webkit-font-smoothing:antialiased;
+}
+.app{
+  display:grid;
+  grid-template-columns:300px 1fr;
+  grid-template-rows:auto 1fr;
+  grid-template-areas:
+    "header header"
+    "controls main";
+  min-height:100vh;
+}
+/* ---------- header ---------- */
+header.top{
+  grid-area:header;
+  display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+  padding:14px 22px;
+  border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg, rgba(14,19,32,.9), rgba(14,19,32,.55));
+  backdrop-filter:blur(10px);
+}
+header.top .brand{
+  font-family:var(--mono);
+  font-size:13px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--cyan);
+  display:flex; align-items:center; gap:10px;
+}
+header.top .brand .dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--cyan); box-shadow:0 0 10px var(--cyan), 0 0 2px var(--cyan);
+  animation:pulse 2.4s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+header.top .title{
+  font-size:14px; color:var(--text-lo); font-family:var(--mono);
+}
+.module-nav{
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  font-family:var(--mono); font-size:11px;
+}
+.module-nav .module-link{
+  color:var(--text-lo); text-decoration:none;
+  padding:4px 9px; border-radius:7px; border:1px solid transparent;
+  transition:color .15s, border-color .15s, background .15s;
+}
+a.module-link:hover{
+  color:var(--cyan); border-color:var(--line); background:rgba(41,224,214,.06);
+}
+.module-link--current{
+  color:var(--text-hi); border-color:var(--line); background:rgba(77,163,255,.08);
+}
+header.top .readout{
+  margin-left:auto;
+  display:flex; gap:16px; font-family:var(--mono); font-size:11.5px; color:var(--text-lo);
+  flex-wrap:wrap;
+}
+header.top .readout b{color:var(--text-hi); font-weight:600;}
+/* ---------- sidebar ---------- */
+aside.controls{
+  grid-area:controls;
+  border-right:1px solid var(--line);
+  padding:18px 16px 40px;
+  overflow-y:auto;
+  background:linear-gradient(180deg, rgba(13,19,32,.55), rgba(13,19,32,.3));
+}
+.panel{
+  background:var(--bg-panel);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:14px 14px 16px;
+  margin-bottom:14px;
+  box-shadow:0 1px 0 rgba(255,255,255,.02) inset, 0 12px 30px -18px rgba(0,0,0,.7);
+}
+.panel h3{
+  margin:0 0 10px; font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--text-lo); font-family:var(--mono); font-weight:600;
+  display:flex; align-items:center; gap:8px;
+}
+.panel h3::before{
+  content:""; width:10px; height:1px; background:var(--blue); display:inline-block;
+}
+.slider-block{margin-bottom:14px;}
+.slider-block:last-child{margin-bottom:2px;}
+.slider-label{
+  display:flex; justify-content:space-between; align-items:baseline;
+  font-family:var(--mono); font-size:11.5px; color:var(--text-lo); margin-bottom:5px;
+  gap:8px;
+}
+.slider-label b{color:var(--text-hi); font-weight:600; font-size:11.5px;}
+.slider-label .val{color:var(--cyan); font-weight:600; white-space:nowrap;}
+input[type=range]{
+  -webkit-appearance:none; width:100%; height:4px; border-radius:3px;
+  background:linear-gradient(90deg, var(--blue), var(--line-soft));
+  outline:none; cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none; width:14px; height:14px; border-radius:50%;
+  background:var(--cyan); border:2px solid #05121a;
+  box-shadow:0 0 8px rgba(41,224,214,.7); cursor:pointer; margin-top:-5px;
+}
+input[type=range]::-moz-range-thumb{
+  width:14px; height:14px; border-radius:50%; background:var(--cyan);
+  border:2px solid #05121a; box-shadow:0 0 8px rgba(41,224,214,.7); cursor:pointer;
+}
+.hint{font-size:10.5px; color:var(--text-lo); line-height:1.55; margin-top:2px;}
+/* ---------- main ---------- */
+main.stage-wrap{
+  grid-area:main;
+  padding:18px 22px 44px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(480px,1fr));
+  gap:16px;
+  align-items:start;
+}
+.card{
+  background:var(--bg-panel);
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:16px 18px 18px;
+  box-shadow:0 1px 0 rgba(255,255,255,.02) inset, 0 20px 40px -26px rgba(0,0,0,.8);
+}
+.card h2{
+  margin:0 0 4px; font-size:13px; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--text-hi); font-family:var(--mono); font-weight:700;
+  display:flex; align-items:center; gap:8px;
+}
+.card h2 .idx{
+  font-size:10px; color:var(--bg); background:var(--cyan); border-radius:5px;
+  padding:2px 6px; font-weight:700;
+}
+.card .physics-note{
+  font-size:12px; color:var(--text-lo); line-height:1.65; margin:6px 0 12px;
+}
+.card .physics-note b{color:var(--text-hi); font-weight:600;}
+.viz-row{display:flex; gap:14px; flex-wrap:wrap; align-items:flex-start;}
+svg.viz, canvas.viz{
+  width:100%; height:auto; display:block; border-radius:10px;
+  background:rgba(255,255,255,.012);
+  border:1px solid var(--line-soft);
+}
+.eq-box{
+  margin-top:12px; padding:11px 13px; border-radius:10px;
+  background:linear-gradient(180deg, rgba(77,163,255,.08), rgba(77,163,255,.02));
+  border:1px solid rgba(77,163,255,.25);
+  font-family:var(--mono); font-size:12px; color:var(--text-hi); line-height:1.85;
+}
+.eq-box .formula{color:var(--cyan); font-size:13.5px; margin-bottom:6px; display:block;}
+.eq-box .row{display:flex; justify-content:space-between; gap:10px;}
+.eq-box .row span:first-child{color:var(--text-lo);}
+.eq-box .row b{color:var(--amber);}
+.legend-row{
+  display:flex; flex-wrap:wrap; gap:12px; margin-top:10px;
+  font-family:var(--mono); font-size:10px; color:var(--text-lo);
+}
+.legend-row .item{display:flex; align-items:center; gap:6px;}
+.legend-row .swatch{width:14px; height:4px; border-radius:2px; display:inline-block;}
+.legend-row .dot{width:8px; height:8px; border-radius:50%; display:inline-block;}
+.section-divider{
+  grid-column:1 / -1;
+  display:flex; align-items:center; gap:10px;
+  margin:6px 0 -2px;
+  font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--text-lo);
+}
+.section-divider::after{content:""; flex:1; height:1px; background:var(--line);}
+::-webkit-scrollbar{width:9px;}
+::-webkit-scrollbar-thumb{background:rgba(140,180,255,.18); border-radius:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+@media (max-width: 980px){
+  .app{grid-template-columns:1fr; grid-template-areas:"header" "controls" "main";}
+  main.stage-wrap{grid-template-columns:1fr;}
+}
+
+/* ---------- new dashboard card ---------- */
+.dashboard-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(130px,1fr));
+  gap:12px;
+  margin-top:6px;
+}
+.dashboard-item{
+  background:var(--bg-panel-2);
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:8px 10px;
+  text-align:center;
+}
+.dashboard-item .label{
+  font-size:9px;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  color:var(--text-lo);
+  font-family:var(--mono);
+}
+.dashboard-item .value{
+  font-size:15px;
+  font-weight:700;
+  color:var(--text-hi);
+  font-family:var(--mono);
+  margin-top:2px;
+}
+.dashboard-item .value .unit{
+  font-size:10px;
+  font-weight:400;
+  color:var(--text-lo);
+}
+.dashboard-item .value.glow-cyan{color:var(--cyan); text-shadow:0 0 12px rgba(41,224,214,.3);}
+.dashboard-item .value.glow-amber{color:var(--amber); text-shadow:0 0 12px rgba(245,185,66,.3);}
+.dashboard-item .value.glow-red{color:var(--red); text-shadow:0 0 12px rgba(255,92,92,.3);}
+.dashboard-item .value.glow-green{color:#34d399; text-shadow:0 0 12px rgba(52,211,153,.3);}
+
+.insight-text{
+  font-size:12px;
+  color:var(--text-lo);
+  line-height:1.7;
+  margin-top:8px;
+  padding:8px 12px;
+  border-radius:8px;
+  background:rgba(77,163,255,.04);
+  border-left:2px solid var(--cyan);
+}
+.insight-text b{color:var(--text-hi);}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <div class="brand"><span class="dot"></span>JFET·LAB</div>
+    <div class="title">advanced effects &amp; HEMT visualizer</div>
+    <nav class="module-nav">
+      <a href="geometry-field.html" class="module-link">← Channel Geometry &amp; Field</a>
+      <span class="module-link module-link--current">Advanced Effects &amp; HEMT</span>
+    </nav>
+    <div class="readout">
+      <div>V<sub>GS</sub> <b id="hdrVgs">0.00</b> V</div>
+      <div>V<sub>DS</sub> <b id="hdrVds">0.00</b> V</div>
+      <div>I<sub>D</sub>′ <b id="hdrId">0.00</b> mA</div>
+      <div>E <b id="hdrE">0.00</b> kV/cm</div>
+      <div>n<sub>s</sub> <b id="hdrNs">0.0</b>×10¹² cm⁻²</div>
+    </div>
+  </header>
+
+  <aside class="controls">
+
+    <div class="panel">
+      <h3>Bias &amp; Channel Geometry</h3>
+      <div class="slider-block">
+        <div class="slider-label"><b>V<sub>GS</sub></b><span class="val" id="vgsVal">−1.00 V</span></div>
+        <input type="range" id="vgs" min="-8" max="1" step="0.05" value="-1" aria-label="gate-source voltage V_GS, volts">
+      </div>
+      <div class="slider-block">
+        <div class="slider-label"><b>V<sub>DS</sub></b><span class="val" id="vdsVal">4.00 V</span></div>
+        <input type="range" id="vds" min="0" max="12" step="0.05" value="4" aria-label="drain-source voltage V_DS, volts">
+      </div>
+      <div class="slider-block">
+        <div class="slider-label"><b>V<sub>P</sub> (pinch-off)</b><span class="val" id="vpVal">4.0 V</span></div>
+        <input type="range" id="vp" min="1" max="8" step="0.1" value="4" aria-label="pinch-off voltage V_P, volts">
+      </div>
+      <div class="slider-block">
+        <div class="slider-label"><b>Channel length L</b><span class="val" id="lVal">1.50 µm</span></div>
+        <input type="range" id="lch" min="0.3" max="3" step="0.01" value="1.5" aria-label="channel length L, micrometers">
+      </div>
+      <div class="slider-block">
+        <div class="slider-label"><b>λ (CLM coefficient)</b><span class="val" id="lambdaVal">0.020 /V</span></div>
+        <input type="range" id="lambda" min="0" max="0.15" step="0.001" value="0.02" aria-label="channel-length modulation coefficient lambda, per volt">
+      </div>
+      <div class="hint">Drives the channel cross-section, the I<sub>D</sub>–V<sub>DS</sub> curve, and the field magnitude used in the velocity-saturation graph.</div>
+    </div>
+
+    <div class="panel">
+      <h3>Mobility &amp; Velocity Saturation</h3>
+      <div class="slider-block">
+        <div class="slider-label"><b>Low-field μ<sub>0</sub></b><span class="val" id="muVal">4600 cm²/Vs</span></div>
+        <input type="range" id="mu0" min="1000" max="8000" step="50" value="4600" aria-label="low-field mobility mu zero, cm squared per volt second">
+      </div>
+      <div class="slider-block">
+        <div class="slider-label"><b>Saturation velocity v<sub>sat</sub></b><span class="val" id="vsatVal">1.00×10⁷ cm/s</span></div>
+        <input type="range" id="vsat" min="3" max="20" step="0.1" value="10" aria-label="saturation velocity v sat, times 10 to the 6 cm per second">
+      </div>
+      <div class="hint">Sets the critical field E<sub>c</sub> = v<sub>sat</sub>/μ<sub>0</sub> shared by the v(E) graph and the mobility-comparison graph.</div>
+    </div>
+
+    <div class="panel">
+      <h3>Subthreshold Conduction</h3>
+      <div class="slider-block">
+        <div class="slider-label"><b>Threshold V<sub>T</sub></b><span class="val" id="vtsubVal">−1.20 V</span></div>
+        <input type="range" id="vtsub" min="-3" max="2" step="0.05" value="-1.2" aria-label="subthreshold reference threshold voltage, volts">
+      </div>
+      <div class="slider-block">
+        <div class="slider-label"><b>Swing S</b><span class="val" id="swingVal">90 mV/dec</span></div>
+        <input type="range" id="swing" min="60" max="300" step="5" value="90" aria-label="subthreshold swing S, millivolts per decade">
+      </div>
+      <div class="slider-block">
+        <div class="slider-label"><b>Reference I<sub>D0</sub></b><span class="val" id="id0Val">1.0×10⁻³ mA</span></div>
+        <input type="range" id="id0exp" min="-6" max="-2" step="0.1" value="-3" aria-label="reference subthreshold current exponent, ID zero">
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Gate Leakage</h3>
+      <div class="slider-block">
+        <div class="slider-label"><b>Leakage floor I<sub>G0</sub></b><span class="val" id="igfloorVal">1.0×10⁻⁷ mA</span></div>
+        <input type="range" id="igfloorexp" min="-9" max="-5" step="0.1" value="-7" aria-label="gate leakage floor current exponent, IG zero">
+      </div>
+      <div class="slider-block">
+        <div class="slider-label"><b>Rise rate</b><span class="val" id="leakSlopeVal">3.5 dec/V</span></div>
+        <input type="range" id="leakslope" min="1" max="8" step="0.1" value="3.5" aria-label="gate leakage rise rate, decades per volt">
+      </div>
+      <div class="hint">Forward turn-on knee fixed at +0.5 V, typical of a Schottky gate diode.</div>
+    </div>
+
+    <div class="panel">
+      <h3>HEMT / 2-DEG</h3>
+      <div class="slider-block">
+        <div class="slider-label"><b>Gate bias V<sub>GS</sub></b><span class="val" id="hemtVgsVal">−0.50 V</span></div>
+        <input type="range" id="hemtvgs" min="-2" max="0.5" step="0.02" value="-0.5" aria-label="HEMT gate bias voltage, volts">
+      </div>
+      <div class="slider-block">
+        <div class="slider-label"><b>Barrier thickness d</b><span class="val" id="barrierVal">25 nm</span></div>
+        <input type="range" id="barrier" min="10" max="40" step="1" value="25" aria-label="HEMT barrier thickness, nanometers">
+      </div>
+      <div class="hint">n-AlGaAs barrier, ε<sub>r</sub>≈12.2, fixed threshold V<sub>TH</sub> = −1.0 V.</div>
+    </div>
+
+  </aside>
+
+  <main class="stage-wrap">
+
+    <!-- UNIFIED DASHBOARD -->
+    <div class="card" style="grid-column:1 / -1; background:linear-gradient(135deg, rgba(13,19,32,.9), rgba(16,24,40,.7)); border-color:rgba(77,163,255,.2);">
+      <h2 style="color:var(--cyan);">⚡ Unified Physics Dashboard</h2>
+      <div class="dashboard-grid" id="dashboardGrid">
+        <div class="dashboard-item"><div class="label">Active Effect</div><div class="value glow-cyan" id="dashEffect">—</div></div>
+        <div class="dashboard-item"><div class="label">Electric Field E</div><div class="value" id="dashE">0.00 <span class="unit">kV/cm</span></div></div>
+        <div class="dashboard-item"><div class="label">Carrier Velocity v</div><div class="value" id="dashV">0.00 <span class="unit">×10⁷ cm/s</span></div></div>
+        <div class="dashboard-item"><div class="label">Effective L′</div><div class="value" id="dashLprime">0.00 <span class="unit">µm</span></div></div>
+        <div class="dashboard-item"><div class="label">ΔL</div><div class="value glow-red" id="dashDL">0.00 <span class="unit">µm</span></div></div>
+        <div class="dashboard-item"><div class="label">Output Resistance r<sub>o</sub></div><div class="value" id="dashRo">— <span class="unit">kΩ</span></div></div>
+        <div class="dashboard-item"><div class="label">Subthreshold I<sub>D</sub></div><div class="value" id="dashIsub">— <span class="unit">mA</span></div></div>
+        <div class="dashboard-item"><div class="label">2-DEG Density n<sub>s</sub></div><div class="value" id="dashNs">0.00 <span class="unit">×10¹² cm⁻²</span></div></div>
+      </div>
+      <div class="insight-text" id="dashboardInsight">
+        Adjust any slider to see the physical consequences explained here.
+      </div>
+    </div>
+
+    <div class="section-divider">Channel-Length Modulation</div>
+
+    <div class="card" id="cardCLM">
+      <h2><span class="idx">1</span>Channel Cross-Section — L, L′, ΔL</h2>
+      <div class="physics-note">
+        Beyond pinch-off the depletion regions meet before the drain, and the point of pinch-off
+        moves toward the source as V<sub>DS</sub> rises. The remaining <b>undepleted</b> channel
+        shortens from L to <b>L′ = L − ΔL</b>. Because current depends on the field over that
+        shorter length, I<sub>D</sub> keeps creeping up with V<sub>DS</sub> instead of staying flat —
+        this is channel-length modulation.
+      </div>
+      <svg id="svgCLM" class="viz" viewBox="0 0 620 220" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div class="legend-row">
+        <div class="item"><span class="swatch" style="background:var(--blue)"></span>Undepleted channel L′</div>
+        <div class="item"><span class="swatch" style="background:var(--violet)"></span>Depletion region</div>
+        <div class="item"><span class="swatch" style="background:var(--red)"></span>ΔL — high-field region</div>
+      </div>
+      <div class="eq-box" id="eqCLM"></div>
+      <div class="insight-text" id="clmInsight"></div>
+    </div>
+
+    <div class="card" id="cardCLMgraph">
+      <h2><span class="idx">2</span>I<sub>D</sub>–V<sub>DS</sub> with I<sub>D</sub>′ = I<sub>D</sub>(1 + λV<sub>DS</sub>)</h2>
+      <div class="physics-note">
+        The dashed line is the ideal square-law curve, flat once the channel saturates. The solid
+        line applies the channel-length-modulation correction, tilting the saturation region
+        upward. Extrapolated backward, that slope crosses I<sub>D</sub>=0 at V<sub>DS</sub> = −1/λ —
+        the FET analogue of a BJT's Early voltage.
+      </div>
+      <canvas id="cvsCLMgraph" class="viz" width="820" height="360"></canvas>
+      <div class="eq-box" id="eqCLMgraph"></div>
+      <div class="insight-text" id="clmGraphInsight"></div>
+    </div>
+
+    <div class="section-divider">Velocity Saturation &amp; Mobility</div>
+
+    <div class="card" id="cardVE">
+      <h2><span class="idx">3</span>Carrier Drift Velocity v(E)</h2>
+      <div class="physics-note">
+        At low field, carriers drift at v = μ<sub>0</sub>E — Ohm's law. As the field approaches the
+        critical field E<sub>c</sub> = v<sub>sat</sub>/μ<sub>0</sub>, scattering caps the drift velocity
+        near v<sub>sat</sub> regardless of how much harder the field pushes. Short-channel GaAs
+        devices routinely operate in this regime even at modest V<sub>DS</sub>.
+      </div>
+      <canvas id="cvsVE" class="viz" width="820" height="360"></canvas>
+      <div class="eq-box" id="eqVE"></div>
+      <div class="insight-text" id="veInsight"></div>
+    </div>
+
+    <div class="card" id="cardMobility">
+      <h2><span class="idx">4</span>Constant vs. Field-Dependent Mobility</h2>
+      <div class="physics-note">
+        The dashed curve assumes mobility stays constant at every field — the textbook long-channel
+        square law. The solid curve derates the same current by v(E)/(μ<sub>0</sub>E), showing how a
+        real device's I<sub>D</sub> compresses and saturates earlier once the channel field
+        approaches E<sub>c</sub>.
+      </div>
+      <canvas id="cvsMobility" class="viz" width="820" height="360"></canvas>
+      <div class="eq-box" id="eqMobility"></div>
+      <div class="insight-text" id="mobilityInsight"></div>
+    </div>
+
+    <div class="section-divider">Leakage &amp; Subthreshold</div>
+
+    <div class="card" id="cardSubVT">
+      <h2><span class="idx">5</span>Subthreshold Current (log I<sub>D</sub> vs. V<sub>GS</sub>)</h2>
+      <div class="physics-note">
+        Below threshold the channel isn't fully off — a small diffusion current flows and falls off
+        <b>exponentially</b>, so it plots as a straight line on a log axis. The <b>swing S</b> is the
+        gate voltage needed to change I<sub>D</sub> by one decade; a smaller S means a sharper,
+        more ideal turn-off.
+      </div>
+      <canvas id="cvsSubVT" class="viz" width="820" height="360"></canvas>
+      <div class="eq-box" id="eqSubVT"></div>
+      <div class="insight-text" id="subInsight"></div>
+    </div>
+
+    <div class="card" id="cardLeak">
+      <h2><span class="idx">6</span>Gate Leakage Current (log I<sub>G</sub> vs. V<sub>GS</sub>)</h2>
+      <div class="physics-note">
+        A reverse-biased Schottky gate never blocks perfectly — a small <b>leakage floor</b> I<sub>G0</sub>
+        always flows. Push V<sub>GS</sub> toward forward bias and the gate diode turns on, and leakage
+        rises by orders of magnitude over a fraction of a volt.
+      </div>
+      <canvas id="cvsLeak" class="viz" width="820" height="360"></canvas>
+      <div class="eq-box" id="eqLeak"></div>
+      <div class="insight-text" id="leakInsight"></div>
+    </div>
+
+    <div class="section-divider">HEMT — Quantum Well &amp; 2-DEG</div>
+
+    <div class="card" id="cardHEMT" style="grid-column:1 / -1;">
+      <h2><span class="idx">7</span>AlGaAs/GaAs Heterojunction — Simplified Quantum Well</h2>
+      <div class="physics-note">
+        Stacking doped n-AlGaAs on undoped GaAs creates a conduction-band discontinuity ΔE<sub>c</sub>.
+        Donor electrons spill across the interface into GaAs, where band-bending traps them in a
+        narrow <b>triangular potential well</b> right at the heterojunction — confined in one
+        dimension, free to move in the other two. That sheet of confined charge is the
+        <b>two-dimensional electron gas (2-DEG)</b>. A more positive gate bias deepens the well and
+        raises the sheet density n<sub>s</sub>; a sufficiently negative gate bias empties it.
+      </div>
+      <div class="viz-row">
+        <svg id="svgHEMT" class="viz" style="max-width:420px;" viewBox="0 0 420 400" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div style="flex:1; min-width:260px;">
+          <div class="legend-row" style="margin-top:0;">
+            <div class="item"><span class="swatch" style="background:#8a8f9c"></span>Gate metal</div>
+            <div class="item"><span class="swatch" style="background:var(--amber)"></span>n-AlGaAs (doped barrier)</div>
+            <div class="item"><span class="swatch" style="background:#5b6478"></span>AlGaAs spacer (undoped)</div>
+            <div class="item"><span class="swatch" style="background:var(--blue)"></span>GaAs channel</div>
+            <div class="item"><span class="swatch" style="background:#0d1420"></span>GaAs buffer (semi-insulating)</div>
+            <div class="item"><span class="dot" style="background:var(--cyan)"></span>2-DEG electrons</div>
+          </div>
+          <div class="eq-box" id="eqHEMT"></div>
+          <div class="insight-text" id="hemtInsight"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+/* ============================================================
+   SHARED STATE
+   ============================================================ */
+const state = {
+  VGS:-1.0, VDS:4.0, Vp:4.0, L:1.5, lambda:0.02,
+  mu0:4600, vsatM:10,          // vsatM in units of 1e6 cm/s
+  VTsub:-1.2, swing:90, ID0exp:-3,
+  IGfloorExp:-7, leakSlope:3.5,
+  hemtVGS:-0.5, barrier:25
+};
+const VTH_HEMT = -1.0; // fixed HEMT threshold, V — documented constant
+const KNEE_V = 0.5;    // fixed Schottky forward turn-on knee, V — documented constant
+
+const COL = {
+  blue:'#4da3ff', cyan:'#29e0d6', violet:'#9b7bff', amber:'#f5b942',
+  red:'#ff5c5c', yellow:'#fbe94a', textHi:'#e8edf7', textLo:'#7c8aa8',
+  line:'rgba(140,180,255,.18)', gridLine:'rgba(140,180,255,.10)'
+};
+
+/* ============================================================
+   PHYSICS MODEL
+   ============================================================ */
+function baseSquareLawID(vgs, vds, Vp, VGSoff, IDSS){
+  const von = vgs - VGSoff;
+  if (von<=0) return 0;
+  const vdssat = von;
+  if (vds<vdssat){
+    const norm = (2*von*Math.max(vds,0)-vds*vds)/(Vp*Vp);
+    return IDSS*Math.max(norm,0);
+  }
+  return IDSS*(von*von)/(Vp*Vp);
+}
+
+function computeModel(){
+  const s = state;
+  const VGSoff = -s.Vp;
+  const Von = s.VGS - VGSoff;
+  const on = Von>0;
+  const VDSsat = Math.max(Von,0);
+  const IDSS = Math.max(0.5, Math.min(60, 10*(s.mu0/4600)*(1.5/Math.max(s.L,0.05))));
+
+  const ID_base = baseSquareLawID(s.VGS, VDSsat, s.Vp, VGSoff, IDSS); // saturation reference current
+  const ID_noCLM = baseSquareLawID(s.VGS, s.VDS, s.Vp, VGSoff, IDSS);
+  const ID_CLM = on ? (s.VDS<VDSsat ? ID_noCLM : ID_base*(1+s.lambda*s.VDS)) : 0;
+
+  const overDrive = Math.max(s.VDS-VDSsat,0);
+  const dL = on ? Math.min(0.42*s.L, s.lambda*s.L*overDrive*2) : 0;
+  const Lprime = Math.max(s.L-dL, 0.05);
+  const earlyV = s.lambda>0 ? -1/s.lambda : -Infinity;
+
+  const vsat = s.vsatM*1e6;              // cm/s
+  const mu0 = s.mu0;                      // cm2/(V s)
+  const Ec = vsat/mu0;                    // V/cm
+  const Lused = on ? Lprime : s.L;
+  const E_now = (s.VDS*1e4)/Math.max(Lused,0.01);   // V/cm
+  const v_now = mu0*E_now/Math.sqrt(1+Math.pow(E_now/Ec,2));
+
+  // HEMT 2-DEG sheet density (charge-control model)
+  const eps0 = 8.854e-12, epsR = 12.2, q = 1.602e-19;
+  const d_m = s.barrier*1e-9;
+  const dV = s.hemtVGS - VTH_HEMT;
+  const ns_m2 = dV>0 ? (eps0*epsR*dV)/(q*d_m) : 0;
+  const ns_cm2 = ns_m2/1e4;
+
+  // Subthreshold current
+  const ID0 = Math.pow(10, s.ID0exp);
+  const vgsClamped = Math.min(Math.max(s.VGS, s.VTsub-2.2), s.VTsub+1.6);
+  const Isub = vgsClamped < s.VTsub ? ID0*Math.pow(10, (vgsClamped-s.VTsub)*1000/s.swing) : ID0 + 8*Math.pow(vgsClamped-s.VTsub,2);
+
+  // Output resistance ro = dVds/dId (approx 1/(lambda*ID_base) if in saturation)
+  const ro = (on && s.VDS>VDSsat && ID_base>0) ? (1/(s.lambda*ID_base))*1000 : Infinity; // kΩ
+
+  return { VGSoff, Von, on, VDSsat, IDSS, ID_base, ID_noCLM, ID_CLM, dL, Lprime, earlyV,
+           vsat, mu0, Ec, E_now, v_now, ns_cm2, dV, Isub, ro };
+}
+
+function fmt(v,d=2){ return Number.isFinite(v) ? v.toFixed(d) : '—'; }
+function fmtExp(v){ return Number.isFinite(v) ? v.toExponential(2) : '—'; }
+
+/* ============================================================
+   SVG HELPERS
+   ============================================================ */
+const NS='http://www.w3.org/2000/svg';
+function el(tag,attrs){ const n=document.createElementNS(NS,tag); for(const k in attrs) n.setAttribute(k,attrs[k]); return n; }
+function svgClear(svg){ svg.innerHTML=''; }
+
+/* ============================================================
+   CANVAS GRAPH KIT
+   ============================================================ */
+function ctxOf(canvas){ return canvas.getContext('2d'); }
+
+function setupHiDPI(canvas){
+  const dpr = window.devicePixelRatio || 1;
+  if (canvas.dataset.hidpiDone) return;
+  const logicalW = canvas.width, logicalH = canvas.height;
+  canvas.dataset.logicalWidth = logicalW;
+  canvas.dataset.logicalHeight = logicalH;
+  if (dpr>1){
+    canvas.width = Math.round(logicalW*dpr);
+    canvas.height = Math.round(logicalH*dpr);
+    canvas.getContext('2d').setTransform(dpr,0,0,dpr,0,0);
+  }
+  canvas.dataset.hidpiDone = '1';
+}
+
+function makeMapper(canvas, pad, xMin,xMax,yMin,yMax, opts={}){
+  const W = Number(canvas.dataset.logicalWidth)||canvas.width, H = Number(canvas.dataset.logicalHeight)||canvas.height;
+  const left=pad.left, right=W-pad.right, top=pad.top, bottom=H-pad.bottom;
+  const logX = !!opts.logX, logY = !!opts.logY;
+  const lxMin = logX?Math.log10(xMin):xMin, lxMax = logX?Math.log10(xMax):xMax;
+  const lyMin = logY?Math.log10(yMin):yMin, lyMax = logY?Math.log10(yMax):yMax;
+  function X(x){ const v = logX?Math.log10(Math.max(x,1e-30)):x; return left+(v-lxMin)/(lxMax-lxMin)*(right-left); }
+  function Y(y){ const v = logY?Math.log10(Math.max(y,1e-30)):y; return bottom-(v-lyMin)/(lyMax-lyMin)*(bottom-top); }
+  return {W,H,left,right,top,bottom,X,Y,xMin,xMax,yMin,yMax,logX,logY};
+}
+
+function clearCanvas(canvas){
+  const ctx=ctxOf(canvas);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+}
+
+function drawFrame(canvas, map, opt){
+  const ctx = ctxOf(canvas);
+  ctx.save();
+  ctx.strokeStyle = COL.gridLine;
+  ctx.fillStyle = COL.textLo;
+  ctx.font = '11px ui-monospace, monospace';
+  ctx.lineWidth = 1;
+
+  (opt.xTicks||[]).forEach(t=>{
+    const x = map.X(t);
+    ctx.beginPath(); ctx.moveTo(x,map.top); ctx.lineTo(x,map.bottom); ctx.stroke();
+    ctx.textAlign='center'; ctx.textBaseline='top';
+    ctx.fillText(opt.xFmt?opt.xFmt(t):t, x, map.bottom+6);
+  });
+  (opt.yTicks||[]).forEach(t=>{
+    const y = map.Y(t);
+    ctx.beginPath(); ctx.moveTo(map.left,y); ctx.lineTo(map.right,y); ctx.stroke();
+    ctx.textAlign='right'; ctx.textBaseline='middle';
+    ctx.fillText(opt.yFmt?opt.yFmt(t):t, map.left-8, y);
+  });
+
+  ctx.strokeStyle = COL.line;
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(map.left, map.top); ctx.lineTo(map.left, map.bottom); ctx.lineTo(map.right, map.bottom);
+  ctx.stroke();
+
+  ctx.fillStyle = COL.textHi;
+  ctx.font = '12px ui-monospace, monospace';
+  if (opt.xLabel){ ctx.textAlign='center'; ctx.textBaseline='alphabetic'; ctx.fillText(opt.xLabel, (map.left+map.right)/2, map.H-6); }
+  if (opt.yLabel){
+    ctx.save(); ctx.translate(14, (map.top+map.bottom)/2); ctx.rotate(-Math.PI/2);
+    ctx.textAlign='center'; ctx.textBaseline='alphabetic'; ctx.fillText(opt.yLabel,0,0);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function plotCurve(canvas, map, pts, color, opt={}){
+  const ctx = ctxOf(canvas);
+  ctx.save();
+  ctx.beginPath();
+  pts.forEach((p,i)=>{
+    const x=map.X(p.x), y=map.Y(Math.max(p.y, map.logY?1e-30:-1e30));
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle = color;
+  ctx.lineWidth = opt.width||2.4;
+  if (opt.glow){ ctx.shadowColor=color; ctx.shadowBlur=8; }
+  if (opt.dash) ctx.setLineDash(opt.dash); else ctx.setLineDash([]);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function plotMarker(canvas, map, x, y, color){
+  const ctx = ctxOf(canvas);
+  const px=map.X(x), py=map.Y(Math.max(y, map.logY?1e-30:-1e30));
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.shadowColor = color; ctx.shadowBlur = 10;
+  ctx.beginPath(); ctx.arc(px,py,4.5,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function plotVLine(canvas, map, x, color, dash){
+  const ctx = ctxOf(canvas);
+  const px = map.X(x);
+  ctx.save();
+  ctx.strokeStyle = color; ctx.lineWidth=1.2;
+  if(dash) ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(px,map.top); ctx.lineTo(px,map.bottom); ctx.stroke();
+  ctx.restore();
+}
+function plotHLine(canvas, map, y, color, dash){
+  const ctx = ctxOf(canvas);
+  const py = map.Y(y);
+  ctx.save();
+  ctx.strokeStyle = color; ctx.lineWidth=1.2;
+  if(dash) ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(map.left,py); ctx.lineTo(map.right,py); ctx.stroke();
+  ctx.restore();
+}
+
+function sampleRange(xMin,xMax,n,fn){
+  const pts=[];
+  for(let i=0;i<=n;i++){
+    const x = xMin+(xMax-xMin)*i/n;
+    pts.push({x, y:fn(x)});
+  }
+  return pts;
+}
+function sampleLogRange(xMin,xMax,n,fn){
+  const lmin=Math.log10(xMin), lmax=Math.log10(xMax);
+  const pts=[];
+  for(let i=0;i<=n;i++){
+    const x = Math.pow(10, lmin+(lmax-lmin)*i/n);
+    pts.push({x, y:fn(x)});
+  }
+  return pts;
+}
+
+/* ============================================================
+   CARD 1 — CHANNEL CROSS-SECTION (CLM)
+   ============================================================ */
+const svgCLM = document.getElementById('svgCLM');
+function drawCLM(model){
+  svgClear(svgCLM);
+  const x0=70, x1=550, yMid=110, halfMax=48;
+  const xSpan = x1-x0;
+  const s = state;
+
+  svgCLM.appendChild(el('rect',{x:0,y:0,width:620,height:220,fill:'transparent'}));
+
+  // source / drain contacts
+  svgCLM.appendChild(el('rect',{x:x0-30,y:yMid-halfMax-6,width:26,height:(halfMax*2)+12,fill:'#1a2434',stroke:COL.blue,'stroke-width':1.3,rx:3}));
+  const sT=el('text',{x:x0-17,y:yMid+4,'text-anchor':'middle',fill:COL.textHi,'font-family':'monospace','font-size':'11','font-weight':'700'}); sT.textContent='S'; svgCLM.appendChild(sT);
+  svgCLM.appendChild(el('rect',{x:x1+4,y:yMid-halfMax-6,width:26,height:(halfMax*2)+12,fill:'#1a2434',stroke:COL.red,'stroke-width':1.3,rx:3}));
+  const dT=el('text',{x:x1+17,y:yMid+4,'text-anchor':'middle',fill:COL.textHi,'font-family':'monospace','font-size':'11','font-weight':'700'}); dT.textContent='D'; svgCLM.appendChild(dT);
+
+  // channel body (undepleted, blue)
+  svgCLM.appendChild(el('rect',{x:x0,y:yMid-halfMax,width:xSpan,height:halfMax*2,fill:'rgba(77,163,255,.10)',stroke:COL.line}));
+
+  // fraction of channel pinched off (from source) — depletion grows toward drain then the
+  // last dL of length is the high-field region where the channel is fully pinched
+  const LprimeFrac = Math.min(1, model.Lprime/s.L);
+  const xPinchStart = x0 + LprimeFrac*xSpan; // where undepleted channel ends
+
+  // gentle depletion taper into the pinch point (top + bottom), purely illustrative
+  const taper = 26;
+  const topPts = [[x0,yMid-halfMax],[Math.max(x0,xPinchStart-taper),yMid-halfMax],[xPinchStart,yMid-6],[x1,yMid-6],[x1,yMid-halfMax]];
+  svgCLM.appendChild(el('polygon',{points:topPts.map(p=>p.join(',')).join(' '),fill:'rgba(155,123,255,.30)',stroke:COL.violet,'stroke-width':1}));
+  const botPts = [[x0,yMid+halfMax],[Math.max(x0,xPinchStart-taper),yMid+halfMax],[xPinchStart,yMid+6],[x1,yMid+6],[x1,yMid+halfMax]];
+  svgCLM.appendChild(el('polygon',{points:botPts.map(p=>p.join(',')).join(' '),fill:'rgba(155,123,255,.30)',stroke:COL.violet,'stroke-width':1}));
+
+  // ΔL high-field region, colored by how close v(E) is to vsat
+  if (model.dL>0.001){
+    const vRatio = Math.min(1, model.v_now/model.vsat);
+    const fieldColor = vRatio<0.35?COL.blue : vRatio<0.65?COL.cyan : vRatio<0.88?COL.amber : COL.red;
+    svgCLM.appendChild(el('rect',{x:xPinchStart,y:yMid-6,width:x1-xPinchStart,height:12,fill:'rgba(255,92,92,.16)'}));
+    // small field arrows inside ΔL, intensifying toward the drain
+    for(let i=0;i<4;i++){
+      const fx = xPinchStart + (x1-xPinchStart)*(i+0.5)/4;
+      svgCLM.appendChild(el('line',{x1:fx-8,y1:yMid,x2:fx+8,y2:yMid,stroke:fieldColor,'stroke-width':2,'marker-end':'url(#clmArrow)'}));
+    }
+    const defs = el('defs',{});
+    const marker = el('marker',{id:'clmArrow',markerWidth:'6',markerHeight:'6',refX:'4',refY:'3',orient:'auto'});
+    marker.appendChild(el('path',{d:'M0,0 L6,3 L0,6 Z',fill:fieldColor}));
+    defs.appendChild(marker);
+    svgCLM.appendChild(defs);
+  }
+
+  // gate bars
+  svgCLM.appendChild(el('rect',{x:x0,y:yMid-halfMax-12,width:xSpan,height:10,fill:COL.violet,opacity:.85,rx:2}));
+  svgCLM.appendChild(el('rect',{x:x0,y:yMid+halfMax+2,width:xSpan,height:10,fill:COL.violet,opacity:.85,rx:2}));
+
+  // L bracket (full original channel length)
+  const brY = yMid+halfMax+26;
+  svgCLM.appendChild(el('line',{x1:x0,y1:brY,x2:x1,y2:brY,stroke:COL.textLo,'stroke-width':1}));
+  svgCLM.appendChild(el('line',{x1:x0,y1:brY-5,x2:x0,y2:brY+5,stroke:COL.textLo,'stroke-width':1}));
+  svgCLM.appendChild(el('line',{x1:x1,y1:brY-5,x2:x1,y2:brY+5,stroke:COL.textLo,'stroke-width':1}));
+  const lLbl=el('text',{x:(x0+x1)/2,y:brY-7,'text-anchor':'middle',fill:COL.textLo,'font-family':'monospace','font-size':'10.5'}); lLbl.textContent='L'; svgCLM.appendChild(lLbl);
+
+  // L' bracket (undepleted channel)
+  const brY2 = brY+20;
+  svgCLM.appendChild(el('line',{x1:x0,y1:brY2,x2:xPinchStart,y2:brY2,stroke:COL.cyan,'stroke-width':1.4}));
+  svgCLM.appendChild(el('line',{x1:x0,y1:brY2-5,x2:x0,y2:brY2+5,stroke:COL.cyan,'stroke-width':1.4}));
+  svgCLM.appendChild(el('line',{x1:xPinchStart,y1:brY2-5,x2:xPinchStart,y2:brY2+5,stroke:COL.cyan,'stroke-width':1.4}));
+  const lpLbl=el('text',{x:(x0+xPinchStart)/2,y:brY2-7,'text-anchor':'middle',fill:COL.cyan,'font-family':'monospace','font-size':'10.5','font-weight':'700'}); lpLbl.textContent="L′"; svgCLM.appendChild(lpLbl);
+
+  // ΔL bracket
+  if (model.dL>0.001){
+    svgCLM.appendChild(el('line',{x1:xPinchStart,y1:brY2,x2:x1,y2:brY2,stroke:COL.red,'stroke-width':1.4}));
+    svgCLM.appendChild(el('line',{x1:x1,y1:brY2-5,x2:x1,y2:brY2+5,stroke:COL.red,'stroke-width':1.4}));
+    const dlLbl=el('text',{x:(xPinchStart+x1)/2,y:brY2-7,'text-anchor':'middle',fill:COL.red,'font-family':'monospace','font-size':'10.5','font-weight':'700'}); dlLbl.textContent='ΔL'; svgCLM.appendChild(dlLbl);
+  }
+
+  const stateLbl = el('text',{x:310,y:20,'text-anchor':'middle',fill:model.on?(model.VDS>=model.VDSsat?COL.red:COL.blue):COL.textLo,
+    'font-family':'monospace','font-size':'11','font-weight':'700'});
+  stateLbl.textContent = !model.on ? 'CUTOFF' : (s.VDS<model.VDSsat ? 'OHMIC' : 'SATURATION + CLM');
+  svgCLM.appendChild(stateLbl);
+}
+
+function eqCLM(model){
+  document.getElementById('eqCLM').innerHTML =
+    `<span class="formula">L′ = L − ΔL</span>`+
+    `<div class="row"><span>L (original length)</span><b>${fmt(state.L,2)} µm</b></div>`+
+    `<div class="row"><span>ΔL (high-field region)</span><b>${fmt(model.dL,3)} µm</b></div>`+
+    `<div class="row"><span>L′ (undepleted length)</span><b>${fmt(model.Lprime,3)} µm</b></div>`+
+    `<div class="row"><span>V<sub>DS(sat)</sub></span><b>${fmt(model.VDSsat,2)} V</b></div>`;
+}
+
+function clmInsight(model){
+  const s = state;
+  let txt = '';
+  if(!model.on) txt = 'Channel is cut off (VGS < Vp). No current flows, and the depletion region fully occupies the channel.';
+  else if(s.VDS < model.VDSsat) txt = 'Operating in the ohmic (triode) region: the channel is continuous from source to drain, and ID depends on both VGS and VDS.';
+  else {
+    txt = `Channel is pinched off near the drain. The depletion region extends from the gate junction and meets the drain-side depletion region, creating a high-field ΔL region of length ${fmt(model.dL,2)} µm. The effective undepleted channel length is L′ = ${fmt(model.Lprime,2)} µm. Increasing VDS further expands ΔL, causing ID to rise slightly due to channel-length modulation (λ = ${fmt(s.lambda,3)} /V).`;
+  }
+  document.getElementById('clmInsight').innerHTML = txt;
+}
+
+/* ============================================================
+   CARD 2 — ID–VDS WITH CLM
+   ============================================================ */
+const cvsCLMgraph = document.getElementById('cvsCLMgraph');
+function drawCLMgraph(model){
+  clearCanvas(cvsCLMgraph);
+  const s = state;
+  const VGSoff = model.VGSoff;
+  const xMax = 12, yMax = Math.max(4, model.IDSS*1.5);
+  const map = makeMapper(cvsCLMgraph, {left:52,right:20,top:18,bottom:40}, 0,xMax,0,yMax);
+
+  drawFrame(cvsCLMgraph, map, {
+    xTicks:[0,2,4,6,8,10,12], yTicks:[0,yMax/4,yMax/2,yMax*3/4,yMax],
+    xFmt:t=>t.toFixed(0), yFmt:t=>t.toFixed(1),
+    xLabel:'V_DS (V)', yLabel:'I_D (mA)'
+  });
+
+  const idealPts = sampleRange(0,xMax,140, vds=>baseSquareLawID(s.VGS, vds, s.Vp, VGSoff, model.IDSS));
+  plotCurve(cvsCLMgraph, map, idealPts, COL.textLo, {dash:[5,4], width:1.6});
+
+  const clmPts = sampleRange(0,xMax,140, vds=>{
+    if (!model.on) return 0;
+    return vds<model.VDSsat ? baseSquareLawID(s.VGS, vds, s.Vp, VGSoff, model.IDSS) : model.ID_base*(1+s.lambda*vds);
+  });
+  plotCurve(cvsCLMgraph, map, clmPts, COL.red, {width:2.6, glow:true});
+
+  if (model.on) plotVLine(cvsCLMgraph, map, model.VDSsat, COL.violet, [3,3]);
+  plotMarker(cvsCLMgraph, map, s.VDS, model.ID_CLM, COL.cyan);
+}
+
+function eqCLMgraph(model){
+  const earlyTxt = state.lambda>0 ? `${fmt(model.earlyV,1)} V` : '−∞ (λ = 0)';
+  document.getElementById('eqCLMgraph').innerHTML =
+    `<span class="formula">I<sub>D</sub>′ = I<sub>D</sub>(1 + λV<sub>DS</sub>)</span>`+
+    `<div class="row"><span>I<sub>D</sub> (at V<sub>DS(sat)</sub>)</span><b>${fmt(model.ID_base,3)} mA</b></div>`+
+    `<div class="row"><span>λ</span><b>${fmt(state.lambda,3)} /V</b></div>`+
+    `<div class="row"><span>V<sub>DS</sub></span><b>${fmt(state.VDS,2)} V</b></div>`+
+    `<div class="row"><span>I<sub>D</sub>′ (corrected)</span><b>${fmt(model.ID_CLM,3)} mA</b></div>`+
+    `<div class="row"><span>Early-voltage intercept −1/λ</span><b>${earlyTxt}</b></div>`;
+}
+
+function clmGraphInsight(model){
+  const s = state;
+  let txt = '';
+  if(!model.on) txt = 'Device is off; no current flows.';
+  else if(s.VDS < model.VDSsat) txt = `In the ohmic region, the CLM correction is not applied (it only appears in saturation). The drain current follows the square-law equation.`;
+  else {
+    const pctRise = model.ID_base>0 ? ((model.ID_CLM - model.ID_base)/model.ID_base*100) : 0;
+    txt = `At the operating point VDS = ${fmt(s.VDS,2)} V, the CLM correction adds ${fmt(pctRise,1)}% to the ideal current. The output resistance (slope of the curve) is approximately r_o = 1/(λ·I_D) = ${fmt(model.ro,2)} kΩ.`;
+  }
+  document.getElementById('clmGraphInsight').innerHTML = txt;
+}
+
+/* ============================================================
+   CARD 3 — v(E)
+   ============================================================ */
+const cvsVE = document.getElementById('cvsVE');
+function drawVE(model){
+  clearCanvas(cvsVE);
+  const Ec = model.Ec;
+  const EmaxKV = Math.max(Ec*8, model.E_now*1.3)/1000; // kV/cm
+  const vMaxE7 = (model.vsat*1.25)/1e7;
+  const map = makeMapper(cvsVE, {left:58,right:20,top:18,bottom:40}, 0,EmaxKV,0,vMaxE7);
+
+  drawFrame(cvsVE, map, {
+    xTicks:[0,EmaxKV*0.25,EmaxKV*0.5,EmaxKV*0.75,EmaxKV], yTicks:[0,vMaxE7*0.25,vMaxE7*0.5,vMaxE7*0.75,vMaxE7],
+    xFmt:t=>t.toFixed(1), yFmt:t=>t.toFixed(1),
+    xLabel:'E (kV/cm)', yLabel:'v (×10⁷ cm/s)'
+  });
+
+  plotHLine(cvsVE, map, model.vsat/1e7, COL.textLo, [4,4]);
+  const linPts = sampleRange(0,EmaxKV,80, ekv=> (model.mu0*(ekv*1000))/1e7 );
+  plotCurve(cvsVE, map, linPts, COL.violet, {dash:[3,4], width:1.4});
+  const vPts = sampleRange(0,EmaxKV,140, ekv=>{
+    const Efield = ekv*1000;
+    return (model.mu0*Efield/Math.sqrt(1+Math.pow(Efield/Ec,2)))/1e7;
+  });
+  plotCurve(cvsVE, map, vPts, COL.cyan, {width:2.6, glow:true});
+  plotVLine(cvsVE, map, Ec/1000, COL.amber, [3,3]);
+  plotMarker(cvsVE, map, model.E_now/1000, model.v_now/1e7, COL.red);
+}
+
+function eqVE(model){
+  document.getElementById('eqVE').innerHTML =
+    `<span class="formula">v(E) = μ₀E / √(1 + (E/E꜀)²)</span>`+
+    `<div class="row"><span>μ₀</span><b>${fmt(state.mu0,0)} cm²/Vs</b></div>`+
+    `<div class="row"><span>v<sub>sat</sub></span><b>${fmt(model.vsat/1e7,2)}×10⁷ cm/s</b></div>`+
+    `<div class="row"><span>E꜀ = v<sub>sat</sub>/μ₀</span><b>${fmt(model.Ec/1000,2)} kV/cm</b></div>`+
+    `<div class="row"><span>Operating field E</span><b>${fmt(model.E_now/1000,2)} kV/cm</b></div>`+
+    `<div class="row"><span>v at operating point</span><b>${fmt(model.v_now/1e7,2)}×10⁷ cm/s</b></div>`;
+}
+
+function veInsight(model){
+  const s = state;
+  const ratio = model.E_now / model.Ec;
+  let regime = ratio < 0.3 ? 'linear (Ohmic)' : ratio < 0.7 ? 'transition' : 'velocity-saturated';
+  document.getElementById('veInsight').innerHTML =
+    `Operating field E = ${fmt(model.E_now/1000,2)} kV/cm, E_c = ${fmt(model.Ec/1000,2)} kV/cm → E/E_c = ${fmt(ratio,2)}. Carrier velocity is ${fmt(model.v_now/1e7,2)}×10⁷ cm/s, which is ${fmt((model.v_now/model.vsat)*100,1)}% of v<sub>sat</sub>. The device is in the <b>${regime}</b> regime.`;
+}
+
+/* ============================================================
+   CARD 4 — MOBILITY COMPARISON
+   ============================================================ */
+const cvsMobility = document.getElementById('cvsMobility');
+function drawMobility(model){
+  clearCanvas(cvsMobility);
+  const s = state;
+  const VGSoff = model.VGSoff;
+  const xMax = 12, yMax = Math.max(4, model.IDSS*1.5);
+  const map = makeMapper(cvsMobility, {left:52,right:20,top:18,bottom:40}, 0,xMax,0,yMax);
+
+  drawFrame(cvsMobility, map, {
+    xTicks:[0,2,4,6,8,10,12], yTicks:[0,yMax/4,yMax/2,yMax*3/4,yMax],
+    xFmt:t=>t.toFixed(0), yFmt:t=>t.toFixed(1),
+    xLabel:'V_DS (V)', yLabel:'I_D (mA)'
+  });
+
+  const constPts = sampleRange(0,xMax,140, vds=>baseSquareLawID(s.VGS, vds, s.Vp, VGSoff, model.IDSS));
+  plotCurve(cvsMobility, map, constPts, COL.textLo, {dash:[5,4], width:1.6});
+
+  const fdPts = sampleRange(0,xMax,140, vds=>{
+    const base = baseSquareLawID(s.VGS, vds, s.Vp, VGSoff, model.IDSS);
+    const Efield = (vds*1e4)/Math.max(s.L,0.01);
+    const derate = 1/Math.sqrt(1+Math.pow(Efield/model.Ec,2));
+    return base*derate;
+  });
+  plotCurve(cvsMobility, map, fdPts, COL.amber, {width:2.6, glow:true});
+
+  const Enow = (s.VDS*1e4)/Math.max(s.L,0.01);
+  const derateNow = 1/Math.sqrt(1+Math.pow(Enow/model.Ec,2));
+  const idConst = baseSquareLawID(s.VGS, s.VDS, s.Vp, VGSoff, model.IDSS);
+  plotMarker(cvsMobility, map, s.VDS, idConst, COL.textHi);
+  plotMarker(cvsMobility, map, s.VDS, idConst*derateNow, COL.amber);
+}
+
+function eqMobility(model){
+  const s = state;
+  const VGSoff = model.VGSoff;
+  const idConst = baseSquareLawID(s.VGS, s.VDS, s.Vp, VGSoff, model.IDSS);
+  const Enow = (s.VDS*1e4)/Math.max(s.L,0.01);
+  const derateNow = 1/Math.sqrt(1+Math.pow(Enow/model.Ec,2));
+  const idFd = idConst*derateNow;
+  const pctLoss = idConst>0 ? (1-idFd/idConst)*100 : 0;
+  document.getElementById('eqMobility').innerHTML =
+    `<span class="formula">I<sub>D,real</sub> = I<sub>D,ideal</sub> · v(E)/(μ₀E)</span>`+
+    `<div class="row"><span>Constant-μ current</span><b>${fmt(idConst,3)} mA</b></div>`+
+    `<div class="row"><span>Field-dependent current</span><b>${fmt(idFd,3)} mA</b></div>`+
+    `<div class="row"><span>Current lost to velocity saturation</span><b>${fmt(pctLoss,1)}%</b></div>`;
+}
+
+function mobilityInsight(model){
+  const s = state;
+  const Enow = (s.VDS*1e4)/Math.max(s.L,0.01);
+  const derate = 1/Math.sqrt(1+Math.pow(Enow/model.Ec,2));
+  let txt = `At the operating point, the field-dependent mobility reduces the current to ${fmt(derate*100,1)}% of the constant-mobility prediction. `;
+  if(derate < 0.7) txt += 'The device is strongly affected by velocity saturation, typical of short-channel or high-voltage operation.';
+  else txt += 'The device is still in the low-field regime; velocity saturation is negligible.';
+  document.getElementById('mobilityInsight').innerHTML = txt;
+}
+
+/* ============================================================
+   CARD 5 — SUBTHRESHOLD (log plot)
+   ============================================================ */
+const cvsSubVT = document.getElementById('cvsSubVT');
+function subthresholdID(vgs){
+  const s = state;
+  const ID0 = Math.pow(10, s.ID0exp);
+  if (vgs<s.VTsub) return ID0*Math.pow(10, (vgs-s.VTsub)*1000/s.swing);
+  return ID0 + 8*Math.pow(vgs-s.VTsub,2);
+}
+function drawSubVT(model){
+  clearCanvas(cvsSubVT);
+  const s = state;
+  const xMin = s.VTsub-2.2, xMax = s.VTsub+1.6;
+  const yMin = 1e-9, yMax = 20;
+  const map = makeMapper(cvsSubVT, {left:56,right:20,top:18,bottom:40}, xMin,xMax,yMin,yMax, {logY:true});
+
+  const yTicks=[]; for(let e=-9;e<=1;e+=2) yTicks.push(Math.pow(10,e));
+  drawFrame(cvsSubVT, map, {
+    xTicks:[xMin, s.VTsub-1, s.VTsub, s.VTsub+1, xMax], yTicks,
+    xFmt:t=>t.toFixed(1), yFmt:t=>('1e'+Math.round(Math.log10(t))),
+    xLabel:'V_GS (V)', yLabel:'I_D (mA, log)'
+  });
+
+  const pts = sampleRange(xMin,xMax,160, subthresholdID);
+  plotCurve(cvsSubVT, map, pts, COL.cyan, {width:2.6, glow:true});
+  plotVLine(cvsSubVT, map, s.VTsub, COL.amber, [3,3]);
+  const vgsClamped = Math.min(Math.max(s.VGS, xMin), xMax);
+  plotMarker(cvsSubVT, map, vgsClamped, subthresholdID(vgsClamped), COL.red);
+}
+
+function eqSubVT(model){
+  const idAtVgs = subthresholdID(Math.min(Math.max(state.VGS, state.VTsub-2.2), state.VTsub+1.6));
+  document.getElementById('eqSubVT').innerHTML =
+    `<span class="formula">I<sub>D</sub> = I<sub>D0</sub>·10^((V<sub>GS</sub>−V<sub>T</sub>)/(S/1000))</span>`+
+    `<div class="row"><span>V<sub>T</sub></span><b>${fmt(state.VTsub,2)} V</b></div>`+
+    `<div class="row"><span>Swing S</span><b>${fmt(state.swing,0)} mV/dec</b></div>`+
+    `<div class="row"><span>I<sub>D0</sub></span><b>${fmtExp(Math.pow(10,state.ID0exp))} mA</b></div>`+
+    `<div class="row"><span>I<sub>D</sub> at current V<sub>GS</sub></span><b>${fmtExp(idAtVgs)} mA</b></div>`;
+}
+
+function subInsight(model){
+  const s = state;
+  const idAtVgs = subthresholdID(Math.min(Math.max(s.VGS, s.VTsub-2.2), s.VTsub+1.6));
+  let txt = '';
+  if(s.VGS < s.VTsub) txt = `The device is in subthreshold, with I_D = ${fmtExp(idAtVgs)} mA. The subthreshold swing S = ${fmt(s.swing,0)} mV/dec means each decade of current change requires ${fmt(s.swing,0)} mV of gate voltage.`;
+  else txt = `The device is above threshold; the subthreshold model is not active, but the curve shows the ideal exponential transition.`;
+  document.getElementById('subInsight').innerHTML = txt;
+}
+
+/* ============================================================
+   CARD 6 — GATE LEAKAGE (semilog)
+   ============================================================ */
+const cvsLeak = document.getElementById('cvsLeak');
+function gateLeakage(vgs){
+  const IGfloor = Math.pow(10, state.IGfloorExp);
+  return IGfloor*(1+Math.pow(10, state.leakSlope*(vgs-KNEE_V)));
+}
+function drawLeak(model){
+  clearCanvas(cvsLeak);
+  const xMin=-10, xMax=1.2;
+  const yMin = Math.pow(10, state.IGfloorExp)*0.5, yMax=10;
+  const map = makeMapper(cvsLeak, {left:56,right:20,top:18,bottom:40}, xMin,xMax,yMin,yMax, {logY:true});
+
+  const yTicks=[]; for(let e=Math.ceil(state.IGfloorExp);e<=1;e+=2) yTicks.push(Math.pow(10,e));
+  drawFrame(cvsLeak, map, {
+    xTicks:[-10,-8,-6,-4,-2,0,1.2], yTicks,
+    xFmt:t=>t.toFixed(0), yFmt:t=>('1e'+Math.round(Math.log10(t))),
+    xLabel:'V_GS (V)', yLabel:'I_G (mA, log)'
+  });
+
+  plotHLine(cvsLeak, map, Math.pow(10,state.IGfloorExp), COL.textLo, [4,4]);
+  const pts = sampleRange(xMin,xMax,160, gateLeakage);
+  plotCurve(cvsLeak, map, pts, COL.violet, {width:2.6, glow:true});
+  plotVLine(cvsLeak, map, KNEE_V, COL.amber, [3,3]);
+  const vgsClamped = Math.min(Math.max(state.VGS, xMin), xMax);
+  plotMarker(cvsLeak, map, vgsClamped, gateLeakage(vgsClamped), COL.red);
+}
+
+function eqLeak(model){
+  const vgsClamped = Math.min(Math.max(state.VGS, -10), 1.2);
+  document.getElementById('eqLeak').innerHTML =
+    `<span class="formula">I<sub>G</sub> = I<sub>G0</sub>(1 + 10^(k(V<sub>GS</sub>−V<sub>knee</sub>)))</span>`+
+    `<div class="row"><span>Floor I<sub>G0</sub></span><b>${fmtExp(Math.pow(10,state.IGfloorExp))} mA</b></div>`+
+    `<div class="row"><span>Rise rate k</span><b>${fmt(state.leakSlope,1)} dec/V</b></div>`+
+    `<div class="row"><span>Forward knee</span><b>${fmt(KNEE_V,2)} V</b></div>`+
+    `<div class="row"><span>I<sub>G</sub> at current V<sub>GS</sub></span><b>${fmtExp(gateLeakage(vgsClamped))} mA</b></div>`;
+}
+
+function leakInsight(model){
+  const vgsClamped = Math.min(Math.max(state.VGS, -10), 1.2);
+  const ig = gateLeakage(vgsClamped);
+  let txt = '';
+  if(state.VGS < KNEE_V - 0.5) txt = `Gate is reverse-biased; leakage is at the floor of ${fmtExp(Math.pow(10,state.IGfloorExp))} mA.`;
+  else if(state.VGS < KNEE_V) txt = `Gate is near zero bias; leakage is just above the floor.`;
+  else txt = `Gate is forward-biased; leakage has risen to ${fmtExp(ig)} mA due to Schottky diode turn-on.`;
+  document.getElementById('leakInsight').innerHTML = txt;
+}
+
+/* ============================================================
+   CARD 7 — HEMT QUANTUM WELL
+   ============================================================ */
+const svgHEMT = document.getElementById('svgHEMT');
+function drawHEMT(model){
+  svgClear(svgHEMT);
+  const s = state;
+  svgHEMT.appendChild(el('rect',{x:0,y:0,width:420,height:400,fill:'transparent'}));
+
+  const stackX0=20, stackX1=75, top=20;
+  const gateH=20;
+  const barrierH = 22 + (s.barrier-10)*2;  // scales with slider
+  const spacerH = 15;
+  const channelH = 26;
+  const yGate = top, yBarrier=yGate+gateH, ySpacer=yBarrier+barrierH, yChannel=ySpacer+spacerH, yBuffer=yChannel+channelH, yEnd=380;
+
+  // physical layer stack
+  svgHEMT.appendChild(el('rect',{x:stackX0,y:yGate,width:stackX1-stackX0,height:gateH,fill:'#8a8f9c'}));
+  svgHEMT.appendChild(el('rect',{x:stackX0,y:yBarrier,width:stackX1-stackX0,height:barrierH,fill:COL.amber,opacity:.85}));
+  svgHEMT.appendChild(el('rect',{x:stackX0,y:ySpacer,width:stackX1-stackX0,height:spacerH,fill:'#5b6478'}));
+  svgHEMT.appendChild(el('rect',{x:stackX0,y:yChannel,width:stackX1-stackX0,height:channelH,fill:COL.blue,opacity:.55}));
+  svgHEMT.appendChild(el('rect',{x:stackX0,y:yBuffer,width:stackX1-stackX0,height:yEnd-yBuffer,fill:'#0d1420',stroke:COL.line}));
+
+  const mkLbl=(y,text,color)=>{ const t=el('text',{x:stackX1+6,y:y,fill:color||COL.textLo,'font-family':'monospace','font-size':'8.5'}); t.textContent=text; svgHEMT.appendChild(t); };
+  mkLbl(yGate+gateH/2+3,'gate metal');
+  mkLbl(yBarrier+barrierH/2+3,'n-AlGaAs barrier', '#7a5c14');
+  mkLbl(ySpacer+spacerH/2+3,'AlGaAs spacer (i)');
+  mkLbl(yChannel+channelH/2+3,'GaAs channel', COL.blue);
+  mkLbl(yBuffer+18,'GaAs buffer (s.i.)');
+
+  // --- band diagram, aligned depth-for-depth with the stack ---
+  const bx0=140, bx1=400;
+  const EF_x = 250;
+  const dV = model.dV;
+  // Well depth collapses continuously as the gate pulls below threshold, rather than
+  // snapping to a hard floor — an exponential falloff into depletion (dV<0) alongside
+  // the linear charge-control rise above threshold (dV>0).
+  const wellDepth = dV>0
+    ? Math.min(95, 6 + dV*55)
+    : Math.max(0.4, 6*Math.exp(dV*1.6));
+  const populated = model.ns_cm2>0.02;
+  const interfaceY = yChannel; // heterointerface depth
+  const baseXtop = 300, baseXbot = 300 - 0.16*(interfaceY-top);
+
+  function bandX(y){
+    let base;
+    if (y<interfaceY) base = baseXtop - 0.16*(y-top);
+    else base = baseXbot;
+    const dip = wellDepth*Math.exp(-Math.pow((y-interfaceY)/12,2));
+    return base - dip;
+  }
+  const nSamp=90;
+  let d='';
+  for(let i=0;i<=nSamp;i++){
+    const y = top + (yEnd-top)*i/nSamp;
+    const x = bandX(y);
+    d += (i===0?'M':'L')+x.toFixed(1)+','+y.toFixed(1)+' ';
+  }
+  svgHEMT.appendChild(el('path',{d,fill:'none',stroke:COL.cyan,'stroke-width':2,opacity: populated?1:0.55}));
+
+  const wellStateLbl = el('text',{x:EF_x+4,y:yEnd-8,fill:populated?COL.cyan:COL.textLo,
+    'font-family':'monospace','font-size':'9','font-weight':'700'});
+  wellStateLbl.textContent = populated ? 'WELL POPULATED' : 'WELL DEPLETED';
+  svgHEMT.appendChild(wellStateLbl);
+
+  // Fermi level
+  svgHEMT.appendChild(el('line',{x1:EF_x,y1:top,x2:EF_x,y2:yEnd,stroke:COL.textLo,'stroke-width':1,'stroke-dasharray':'4,3'}));
+  const efLbl=el('text',{x:EF_x+4,y:top+10,fill:COL.textLo,'font-family':'monospace','font-size':'9'}); efLbl.textContent='E_F'; svgHEMT.appendChild(efLbl);
+
+  // 2-DEG shading + electron dots, right at the interface, density scaled by ns
+  if (model.ns_cm2>0.02){
+    svgHEMT.appendChild(el('rect',{x:bx0,y:interfaceY-9,width:bx1-bx0,height:18,fill:'rgba(41,224,214,.10)'}));
+    const nDots = Math.max(4, Math.min(46, Math.round(model.ns_cm2*15)));
+    for(let i=0;i<nDots;i++){
+      const fx = bx0+16 + (bx1-bx0-32)*(i/(nDots-1||1));
+      const jitter = ((i*37)%9)-4;
+      svgHEMT.appendChild(el('circle',{cx:fx,cy:interfaceY+jitter*0.6,r:2,fill:COL.cyan,opacity:.9}));
+    }
+    const sheetLbl = el('text',{x:(bx0+bx1)/2,y:interfaceY-13,'text-anchor':'middle',fill:COL.cyan,'font-family':'monospace','font-size':'9','font-weight':'700'});
+    sheetLbl.textContent='2-DEG';
+    svgHEMT.appendChild(sheetLbl);
+  }
+
+  const capLbl = el('text',{x:(bx0+bx1)/2,y:top-4,'text-anchor':'middle',fill:COL.textLo,'font-family':'monospace','font-size':'9'});
+  capLbl.textContent = 'conduction band E_c(depth)';
+  svgHEMT.appendChild(capLbl);
+}
+
+function eqHEMT(model){
+  document.getElementById('eqHEMT').innerHTML =
+    `<span class="formula">n<sub>s</sub> = ε(V<sub>GS</sub>−V<sub>TH</sub>) / (q·d)</span>`+
+    `<div class="row"><span>ε<sub>r</sub> (AlGaAs)</span><b>12.2</b></div>`+
+    `<div class="row"><span>Barrier thickness d</span><b>${fmt(state.barrier,0)} nm</b></div>`+
+    `<div class="row"><span>V<sub>TH</sub> (fixed)</span><b>${fmt(VTH_HEMT,2)} V</b></div>`+
+    `<div class="row"><span>V<sub>GS</sub> − V<sub>TH</sub></span><b>${fmt(model.dV,2)} V</b></div>`+
+    `<div class="row"><span>2-DEG sheet density n<sub>s</sub></span><b>${fmt(model.ns_cm2,2)}×10¹² cm⁻²</b></div>`;
+}
+
+function hemtInsight(model){
+  let txt = '';
+  if(model.ns_cm2 > 0.02) {
+    txt = `The 2-DEG is present with density ${fmt(model.ns_cm2,2)}×10¹² cm⁻². The well depth is ${fmt(model.dV>0 ? 6+model.dV*55 : 6*Math.exp(model.dV*1.6),1)} units, indicating a populated triangular well.`;
+  } else {
+    txt = `The 2-DEG is depleted (n_s ≈ 0). The well is too shallow to confine electrons. Increasing V_GS above V_TH will refill the well.`;
+  }
+  document.getElementById('hemtInsight').innerHTML = txt;
+}
+
+/* ============================================================
+   DASHBOARD UPDATE
+   ============================================================ */
+function updateDashboard(model){
+  document.getElementById('dashEffect').textContent = model.on ? (state.VDS<model.VDSsat ? 'Ohmic' : 'Saturation + CLM') : 'Cutoff';
+  document.getElementById('dashE').innerHTML = `${fmt(model.E_now/1000,2)} <span class="unit">kV/cm</span>`;
+  document.getElementById('dashV').innerHTML = `${fmt(model.v_now/1e7,2)} <span class="unit">×10⁷ cm/s</span>`;
+  document.getElementById('dashLprime').innerHTML = `${fmt(model.Lprime,2)} <span class="unit">µm</span>`;
+  document.getElementById('dashDL').innerHTML = `${fmt(model.dL,3)} <span class="unit">µm</span>`;
+  const ro = model.ro === Infinity ? '∞' : fmt(model.ro,2);
+  document.getElementById('dashRo').innerHTML = `${ro} <span class="unit">kΩ</span>`;
+  const idSub = model.Isub;
+  document.getElementById('dashIsub').innerHTML = `${fmtExp(idSub)} <span class="unit">mA</span>`;
+  document.getElementById('dashNs').innerHTML = `${fmt(model.ns_cm2,2)} <span class="unit">×10¹² cm⁻²</span>`;
+
+  // Overall insight
+  let insight = '';
+  if(!model.on) insight = 'Device is cut off (VGS < Vp). All currents are zero (except subthreshold leakage).';
+  else if(state.VDS < model.VDSsat) insight = `Ohmic region: channel is continuous, ID depends on both VGS and VDS. Field-dependent mobility reduces current by ${fmt((1 - 1/Math.sqrt(1+Math.pow(model.E_now/model.Ec,2)))*100,1)}% vs constant-mobility.`;
+  else {
+    insight = `Saturation with CLM: channel pinched off, ΔL = ${fmt(model.dL,3)} µm, L′ = ${fmt(model.Lprime,3)} µm. Output resistance r_o = ${fmt(model.ro,2)} kΩ. Velocity saturation reduces current by ${fmt((1 - 1/Math.sqrt(1+Math.pow(model.E_now/model.Ec,2)))*100,1)}%.`;
+  }
+  document.getElementById('dashboardInsight').innerHTML = insight;
+}
+
+/* ============================================================
+   SLIDER WIRING
+   ============================================================ */
+const els = {};
+['vgs','vds','vp','lch','lambda','mu0','vsat','vtsub','swing','id0exp','igfloorexp','leakslope','hemtvgs','barrier']
+  .forEach(id=> els[id]=document.getElementById(id));
+
+function syncSliderLabels(){
+  document.getElementById('vgsVal').textContent = state.VGS.toFixed(2)+' V';
+  document.getElementById('vdsVal').textContent = state.VDS.toFixed(2)+' V';
+  document.getElementById('vpVal').textContent = state.Vp.toFixed(1)+' V';
+  document.getElementById('lVal').textContent = state.L.toFixed(2)+' µm';
+  document.getElementById('lambdaVal').textContent = state.lambda.toFixed(3)+' /V';
+  document.getElementById('muVal').textContent = Math.round(state.mu0)+' cm²/Vs';
+  document.getElementById('vsatVal').textContent = state.vsatM.toFixed(2)+'×10⁶ cm/s';
+  document.getElementById('vtsubVal').textContent = state.VTsub.toFixed(2)+' V';
+  document.getElementById('swingVal').textContent = Math.round(state.swing)+' mV/dec';
+  document.getElementById('id0Val').textContent = Math.pow(10,state.ID0exp).toExponential(1)+' mA';
+  document.getElementById('igfloorVal').textContent = Math.pow(10,state.IGfloorExp).toExponential(1)+' mA';
+  document.getElementById('leakSlopeVal').textContent = state.leakSlope.toFixed(1)+' dec/V';
+  document.getElementById('hemtVgsVal').textContent = state.hemtVGS.toFixed(2)+' V';
+  document.getElementById('barrierVal').textContent = Math.round(state.barrier)+' nm';
+}
+
+function bindRange(input, onChange){
+  input.addEventListener('input', e=>{ onChange(parseFloat(e.target.value)); update(); });
+}
+bindRange(els.vgs, v=>state.VGS=v);
+bindRange(els.vds, v=>state.VDS=v);
+bindRange(els.vp, v=>state.Vp=v);
+bindRange(els.lch, v=>state.L=v);
+bindRange(els.lambda, v=>state.lambda=v);
+bindRange(els.mu0, v=>state.mu0=v);
+bindRange(els.vsat, v=>state.vsatM=v);
+bindRange(els.vtsub, v=>state.VTsub=v);
+bindRange(els.swing, v=>state.swing=v);
+bindRange(els.id0exp, v=>state.ID0exp=v);
+bindRange(els.igfloorexp, v=>state.IGfloorExp=v);
+bindRange(els.leakslope, v=>state.leakSlope=v);
+bindRange(els.hemtvgs, v=>state.hemtVGS=v);
+bindRange(els.barrier, v=>state.barrier=v);
+
+/* ============================================================
+   HI-DPI CANVAS SETUP (run once, before first paint)
+   ============================================================ */
+document.querySelectorAll('canvas.viz').forEach(setupHiDPI);
+
+/* ============================================================
+   MASTER UPDATE
+   ============================================================ */
+function update(){
+  try{
+    const model = computeModel();
+
+    syncSliderLabels();
+
+    drawCLM(model); eqCLM(model); clmInsight(model);
+    drawCLMgraph(model); eqCLMgraph(model); clmGraphInsight(model);
+    drawVE(model); eqVE(model); veInsight(model);
+    drawMobility(model); eqMobility(model); mobilityInsight(model);
+    drawSubVT(model); eqSubVT(model); subInsight(model);
+    drawLeak(model); eqLeak(model); leakInsight(model);
+    drawHEMT(model); eqHEMT(model); hemtInsight(model);
+
+    updateDashboard(model);
+
+    document.getElementById('hdrVgs').textContent = state.VGS.toFixed(2);
+    document.getElementById('hdrVds').textContent = state.VDS.toFixed(2);
+    document.getElementById('hdrId').textContent = model.ID_CLM.toFixed(2);
+    document.getElementById('hdrE').textContent = (model.E_now/1000).toFixed(2);
+    document.getElementById('hdrNs').textContent = model.ns_cm2.toFixed(2);
+  } catch(err){
+    console.error('[JFET·LAB] update() failed:', err);
+    const readout = document.querySelector('header.top .readout');
+    if (readout && !document.getElementById('errBanner')){
+      const b = document.createElement('div');
+      b.id = 'errBanner';
+      b.style.cssText = 'color:var(--red);font-family:var(--mono);font-size:11px;';
+      b.textContent = 'Render error — see console';
+      readout.appendChild(b);
+    }
+  }
+}
+
+update();
+</script>
+</body>
+</html>
