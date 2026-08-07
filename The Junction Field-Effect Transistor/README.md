@@ -2,7 +2,7 @@
 
 [![Made with Love](https://img.shields.io/badge/Made%20with-❤️-red.svg)](https://github.com/mahmudul28/Semiconductor-Physics-and-Devices)
 
-[🏠 Open Main Dashboard](./The%20Junction%20Field-Effect%20Transistor/index.html)
+[🏠 Open Main Dashboard](./index.html)
 
 **Advanced Interactive Semiconductor Device Physics Visualization Suite**  
 Explore the inner workings of field‑effect transistors through dynamic, real‑time visual simulations.
@@ -27,10 +27,10 @@ All simulations are built with pure **HTML5**, **CSS3** and **Vanilla JavaScript
 
 | Module | Description | Link |
 |--------|-------------|------|
-| 🏠 **Main Dashboard** | Overview and navigation hub | [Open index.html](./The%20Junction%20Field-Effect%20Transistor/index.html) |
-| 🔬 **Structure & Electric Field Lab** | Cross‑section animation, depletion width, field heatmaps, carrier flow | [Open geometry-field.html](./The%20Junction%20Field-Effect%20Transistor/geometry-field.html) |
-| 📈 **Graph Laboratory** | I‑V characteristics, √ID vs VGS, ID² vs VGS, gm/gd plots, Professor Mode | [Open graph-lab.html](./The%20Junction%20Field-Effect%20Transistor/graph-lab.html) |
-| 🚀 **Advanced Physics & HEMT Lab** | Channel length modulation, velocity saturation, subthreshold, 2‑DEG quantum well | [Open advanced-effects.html](./The%20Junction%20Field-Effect%20Transistor/advanced-effects.html) |
+| 🏠 **Main Dashboard** | Overview and navigation hub | [Open index.html](./index.html) |
+| 🔬 **Structure & Electric Field Lab** | Cross‑section animation, depletion width, field heatmaps, carrier flow | [Open geometry-field.html](./geometry-field.html) |
+| 📈 **Graph Laboratory** | I‑V characteristics, √ID vs VGS, ID² vs VGS, gm/gd plots, Professor Mode | [Open graph-lab.html](./graph-lab.html) |
+| 🚀 **Advanced Physics & HEMT Lab** | Channel length modulation, velocity saturation, subthreshold, 2‑DEG quantum well | [Open advanced-effects.html](./advanced-effects.html) |
 
 ---
 
@@ -49,9 +49,9 @@ All simulations are built with pure **HTML5**, **CSS3** and **Vanilla JavaScript
 
 ## 🧭 Recommended Learning Path
 
-1. **[Structure Lab](./The%20Junction%20Field-Effect%20Transistor/geometry-field.html)** – start with the device cross‑section to understand geometry, doping and depletion.
-2. **[Graph Laboratory](./The%20Junction%20Field-Effect%20Transistor/graph-lab.html)** – analyse transfer and output characteristics, extract parameters and explore Professor Mode.
-3. **[Advanced Physics & HEMT Lab](./The%20Junction%20Field-Effect%20Transistor/advanced-effects.html)** – dive into second‑order effects and modern heterojunction devices.
+1. **[Structure Lab](./geometry-field.html)** – start with the device cross‑section to understand geometry, doping and depletion.
+2. **[Graph Laboratory](./graph-lab.html)** – analyse transfer and output characteristics, extract parameters and explore Professor Mode.
+3. **[Advanced Physics & HEMT Lab](./advanced-effects.html)** – dive into second‑order effects and modern heterojunction devices.
 
 ---
 
