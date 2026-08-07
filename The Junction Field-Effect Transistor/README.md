@@ -19,7 +19,7 @@ It combines intuitive graphical interfaces with physics‑accurate models to hel
 - Electric‑field distribution and carrier flow
 - Device‐specific characteristics (Schottky gates, heterojunctions, quantum wells)
 
-All simulations are built with pure **HTML5**, **CSS3**, and **Vanilla JavaScript** – no external libraries or frameworks required.
+All simulations are built with pure **HTML5**, **CSS3** and **Vanilla JavaScript** – no external libraries or frameworks required.
 
 ---
 
