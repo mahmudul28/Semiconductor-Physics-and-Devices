@@ -1,629 +1,600 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Schottky Diode Energy Band Simulator</title>
-    <style>
-        :root {
-            --bg: #f8fafc;
-            --panel: #ffffff;
-            --text: #1e293b;
-            --primary: #0288d1; 
-            --border: #cbd5e1;
-            --metal-fill: #b3b3b3;
-            --val-fill: #8a8a8a;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schottky Diode Band Diagram Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0d1117;
+    --bg-grid: #141b24;
+    --panel: #151c26;
+    --panel-2: #10151d;
+    --hairline: #263041;
+    --text-main: #dbe4ee;
+    --text-dim: #7c8ba1;
+    --amber: #ffb454;
+    --phys: #4ea1ff;
+    --success: #34d399;
+    --warning: #ff6b6b;
+    --metal-fill: #3a4454;
+    --val-fill: #232c3a;
+    --radius: 10px;
+    --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  }
 
-        body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+  *{ box-sizing:border-box; }
 
-        .container {
-            background-color: var(--panel);
-            border-radius: 12px;
-            box-shadow: 0 4px 25px rgba(0,0,0,0.06);
-            padding: 30px;
-            max-width: 900px;
-            width: 100%;
-            box-sizing: border-box;
-        }
+  body{
+    margin:0;
+    padding: 28px 16px 60px;
+    background:
+      radial-gradient(circle at 88% 0%, rgba(255,107,107,0.05), transparent 40%),
+      linear-gradient(var(--bg-grid) 1px, transparent 1px) 0 0/100% 34px,
+      var(--bg);
+    color: var(--text-main);
+    font-family: var(--sans);
+    display:flex; flex-direction:column; align-items:center;
+    min-height:100vh;
+  }
 
-        h2 {
-            margin-top: 0;
-            text-align: center;
-            border-bottom: 2px solid var(--border);
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-        }
+  .frame{ width:100%; max-width: 1040px; }
 
-        .controls {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            margin-bottom: 20px;
-            background: #f1f5f9;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-        }
+  .hdr{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    flex-wrap:wrap; gap:10px; margin-bottom:18px;
+    border-bottom:1px solid var(--hairline); padding-bottom:16px;
+  }
+  .hdr-eyebrow{
+    font-family: var(--mono); font-size:0.72rem; letter-spacing:0.14em;
+    text-transform:uppercase; color: var(--warning); margin:0 0 6px;
+  }
+  h1{ margin:0; font-size:1.5rem; font-weight:700; letter-spacing:-0.01em; color:#f1f5f9; }
+  .hdr-sub{
+    font-family: var(--mono); font-size:0.78rem; color: var(--text-dim);
+    max-width: 430px; text-align:right; line-height:1.5;
+  }
+  @media (max-width:640px){ .hdr-sub{ text-align:left; } }
 
-        .control-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+  .readout{
+    display:grid; grid-template-columns: repeat(4,1fr); gap:1px;
+    background: var(--hairline); border:1px solid var(--hairline);
+    border-radius: var(--radius); overflow:hidden; margin-bottom:20px;
+  }
+  .readout-cell{ background: var(--panel-2); padding:12px 14px; min-width:0; }
+  .readout-label{
+    font-family: var(--mono); font-size:0.63rem; letter-spacing:0.08em;
+    text-transform:uppercase; color: var(--text-dim); margin-bottom:6px;
+  }
+  .readout-value{
+    font-family: var(--mono); font-size:1.05rem; font-weight:600;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    color: var(--phys); text-shadow: 0 0 14px rgba(78,161,255,0.3);
+  }
+  .readout-value.ohmic{ color: var(--success); text-shadow: 0 0 14px rgba(52,211,153,0.3); }
+  .readout-value.warn{ color: var(--warning); text-shadow: 0 0 14px rgba(255,107,107,0.3); }
+  @media (max-width:640px){ .readout{ grid-template-columns: repeat(2,1fr); } }
 
-        label {
-            font-weight: 600;
-            font-size: 0.95rem;
-            color: #475569;
-        }
+  .controls{
+    display:flex; align-items:stretch; background: var(--panel);
+    border:1px solid var(--hairline); border-radius: var(--radius);
+    margin-bottom:20px; overflow:hidden;
+  }
+  .ctrl-col{ flex:1; padding:16px 18px; min-width:0; }
+  .ctrl-col + .ctrl-col{ border-left:1px solid var(--hairline); }
+  .ctrl-label{
+    font-family: var(--mono); font-size:0.66rem; letter-spacing:0.08em;
+    text-transform:uppercase; color: var(--text-dim); margin-bottom:8px; display:block;
+  }
+  select{
+    width:100%; padding:9px 10px; border-radius:6px; border:1px solid var(--hairline);
+    background: var(--bg); color: var(--text-main); font-family: var(--mono);
+    font-size:0.85rem; cursor:pointer; outline:none; appearance:none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--text-dim) 50%), linear-gradient(135deg, var(--text-dim) 50%, transparent 50%);
+    background-position: calc(100% - 18px) center, calc(100% - 13px) center;
+    background-size: 5px 5px, 5px 5px; background-repeat:no-repeat;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  select + select{ margin-top:8px; }
+  select:focus-visible{ border-color: var(--amber); box-shadow: 0 0 0 3px rgba(255,180,84,0.15); }
+  .mat-chip{ margin-top:8px; font-family: var(--mono); font-size:0.72rem; color: var(--text-dim); }
 
-        select {
-            padding: 8px 12px;
-            border-radius: 6px;
-            border: 1px solid #94a3b8;
-            font-size: 0.95rem;
-            background-color: white;
-            cursor: pointer;
-            outline: none;
-        }
+  .scope{
+    position:relative;
+    background:
+      linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px) 0 0/40px 100%,
+      linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px) 0 0/100% 40px,
+      var(--panel-2);
+    border:1px solid var(--hairline); border-radius: var(--radius); overflow:hidden;
+  }
+  svg{ display:block; width:100%; height:auto; }
 
-        select:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 2px rgba(2, 136, 209, 0.2);
-        }
+  .band-path{ fill:none; stroke:#e8edf5; stroke-width:2.75; stroke-linecap:round; transition: d .4s ease; }
+  .dashed-line{ stroke:#5a6b82; stroke-dasharray:6 4; stroke-width:1; transition: all .4s ease; }
+  .ef-line{ stroke: var(--phys); stroke-width:2.25; stroke-dasharray:9 5; transition: all .4s ease; }
+  .math{ font-style: italic; }
+  .label{ font-family: var(--mono); font-size:14.5px; fill: var(--text-main); user-select:none; }
+  .label-blue{ font-family: var(--mono); font-size:14.5px; fill: var(--phys); user-select:none; }
+  .label-small{ font-family: var(--mono); font-size:12.5px; fill: var(--phys); user-select:none; font-weight:600; }
 
-        .svg-container {
-            width: 100%;
-            background: #ffffff;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            overflow: hidden;
-            position: relative;
-        }
+  .legend{
+    display:flex; justify-content:center; flex-wrap:wrap; gap:22px;
+    margin:14px 0 20px; font-family: var(--mono); font-size:0.76rem; color: var(--text-dim);
+  }
+  .legend-item{ display:flex; align-items:center; gap:7px; }
+  .legend-color{ width:18px; height:3px; border-radius:2px; }
 
-        svg {
-            display: block;
-            width: 100%;
-            height: auto;
-        }
+  .analysis-box{
+    background: var(--panel); border:1px solid var(--hairline);
+    border-left:3px solid var(--phys); border-radius: 0 var(--radius) var(--radius) 0;
+    padding:16px 20px; margin-bottom:16px;
+    display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;
+    transition: border-color .3s ease;
+  }
+  .analysis-box.ohmic{ border-left-color: var(--success); }
+  .analysis-data{ font-family: var(--mono); font-size:0.85rem; line-height:1.8; color: var(--text-dim); }
+  .data-value{ font-weight:700; color: var(--text-main); }
+  #contact-status{ text-align:right; min-width:240px; }
+  @media (max-width:640px){ #contact-status{ text-align:left; } }
 
-        .overlay-panel {
-            position: absolute;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            z-index: 10;
-        }
+  details.theory{ background: var(--panel); border:1px solid var(--hairline); border-radius: var(--radius); padding:4px 20px; }
+  details.theory summary{
+    cursor:pointer; padding:12px 0; font-family: var(--mono); font-size:0.76rem;
+    letter-spacing:0.05em; text-transform:uppercase; color: var(--amber); list-style:none;
+  }
+  details.theory summary::-webkit-details-marker{ display:none; }
+  details.theory summary::before{ content:"▸ "; }
+  details.theory[open] summary::before{ content:"▾ "; }
+  .theory-body{ padding:0 0 16px; font-size:0.87rem; line-height:1.7; color: var(--text-dim); }
+  .theory-body code{ font-family: var(--mono); background: var(--panel-2); padding:1px 5px; border-radius:4px; color: var(--text-main); }
+  .theory-body ul{ margin:8px 0; padding-left:20px; }
 
-        .overlay-panel.left { top: 15px; left: 15px; }
-        .overlay-panel.right { top: 15px; right: 15px; text-align: right; }
-        .overlay-title { display: block; font-weight: 800; color: var(--primary); margin-bottom: 8px; font-size: 1.1rem;}
+  footer{ text-align:center; margin-top:22px; font-family: var(--mono); font-size:0.7rem; color:#3a465a; letter-spacing:0.04em; }
 
-        .band-path { fill: none; stroke: black; stroke-width: 2.5; transition: d 0.4s ease; }
-        .dashed-line { stroke: #555; stroke-dasharray: 6 4; stroke-width: 1; transition: all 0.4s ease; }
-        .ef-line { stroke: var(--primary); stroke-width: 3; stroke-dasharray: 10 5; transition: all 0.4s ease; }
-        
-        .math { font-family: "Times New Roman", Times, serif; font-style: italic; }
-        .label { font-size: 17px; fill: black; user-select: none; }
-        .label-blue { font-size: 17px; fill: var(--primary); user-select: none; }
-        .label-small { font-size: 13px; fill: var(--primary); user-select: none; font-weight: bold; }
-
-        .analysis-box {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #e1f5fe;
-            border-left: 4px solid var(--primary);
-            border-radius: 4px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .analysis-data {
-            font-size: 1.05rem;
-            line-height: 1.5;
-        }
-
-        .data-value { font-weight: bold; color: #01579b; }
-        .ohmic-warning { color: #d32f2f; font-weight: bold; }
-
-    </style>
+  @media (max-width:640px){
+    .controls{ flex-direction:column; }
+    .ctrl-col + .ctrl-col{ border-left:none; border-top:1px solid var(--hairline); }
+  }
+</style>
 </head>
 <body>
 
-    <div class="container">
-        <h2>Schottky Diode Energy Band Simulator</h2>
-        
-        <!-- Bias Control -->
-        <div class="controls">
-            <div class="control-group">
-                <label for="bias-select">Applied Bias:</label>
-                <select id="bias-select" onchange="updateDiagram()">
-                    <option value="isolated">Isolated (Before Contact)</option>
-                    <option value="eq" selected>Equilibrium (V = 0)</option>
-                    <option value="forward">Forward Bias</option>
-                    <option value="reverse">Reverse Bias</option>
-                </select>
-            </div>
-        </div>
+<div class="frame">
 
-        <div class="svg-container">
-            
-            <!-- Metal Selection Overlay -->
-            <div class="overlay-panel left">
-                <span class="overlay-title">METAL</span>
-                <select id="metal-select" onchange="updateDiagram()">
-                    <option value="Pt">Platinum (Pt) - 5.65 eV</option>
-                    <option value="Pd">Palladium (Pd) - 5.12 eV</option>
-                    <option value="Au">Gold (Au) - 5.10 eV</option>
-                    <option value="W">Tungsten (W) - 4.55 eV</option>
-                    <option value="TiSi2">Titanium Disilicide (TiSi₂) - 4.50 eV</option>
-                    <option value="Ti">Titanium (Ti) - 4.33 eV</option>
-                    <option value="Al" selected>Aluminum (Al) - 4.10 eV</option>
-                    <option value="Mg">Magnesium (Mg) - 3.66 eV</option>
-                </select>
-            </div>
-
-            <!-- Semiconductor Selection Overlay -->
-            <div class="overlay-panel right">
-                <span class="overlay-title">SEMICONDUCTOR</span>
-                <select id="semi-select" onchange="updateDiagram()" style="margin-bottom: 8px;">
-                    <option value="Si" selected>Silicon (Si)</option>
-                    <option value="Ge">Germanium (Ge)</option>
-                    <option value="GaAs">Gallium Arsenide (GaAs)</option>
-                    <option value="GaN">Gallium Nitride (GaN)</option>
-                    <option value="AlAs">Aluminum Arsenide (AlAs)</option>
-                </select><br>
-                <select id="doping-select" onchange="updateDiagram()">
-                    <option value="n" selected>n-type (Moderate)</option>
-                    <option value="n+">n+ type (Heavy)</option>
-                    <option value="p">p-type (Moderate)</option>
-                    <option value="p+">p+ type (Heavy)</option>
-                </select>
-            </div>
-
-            <svg viewBox="0 0 800 620" id="diagram">
-                <!-- Definitions for markers -->
-                <defs>
-                    <marker id="arrow-start" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto-start-reverse">
-                        <path d="M 10 0 L 0 5 L 10 10 z" fill="#0288d1" />
-                    </marker>
-                    <marker id="arrow-end" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
-                        <path d="M 0 0 L 10 5 L 0 10 z" fill="#0288d1" />
-                    </marker>
-                </defs>
-
-                <!-- Metal Region Background -->
-                <path id="metal-region" fill="var(--metal-fill)" d="" style="transition: d 0.4s ease;" />
-                
-                <!-- Interface Lines (Separated for isolated view) -->
-                <line id="surf-m" y1="120" y2="570" stroke="#333" stroke-width="1.5" style="transition: all 0.4s ease;" />
-                <line id="surf-s" y1="120" y2="570" stroke="#333" stroke-width="1.5" style="transition: all 0.4s ease;" />
-
-                <!-- Vacuum Levels (Isolated only) -->
-                <line id="vac-m" stroke="#333" stroke-width="1.5" style="transition: all 0.4s ease;" />
-                <line id="vac-s" stroke="#333" stroke-width="1.5" style="transition: all 0.4s ease;" />
-
-                <!-- Semiconductor Valence Band Shading -->
-                <path id="val-region" fill="var(--val-fill)" d="" style="transition: d 0.4s ease;" />
-
-                <!-- Fermi Levels -->
-                <line id="ef-metal" class="ef-line" />
-                <text id="ef-label-m" class="label-blue math">E_{Fm}</text>
-                
-                <line id="ef-semi" class="ef-line" />
-                <text id="ef-label-s" class="label-blue math">E_{Fs}</text>
-
-                <!-- Semiconductor Band Lines -->
-                <path id="ec-line" class="band-path" d="" />
-                <path id="ev-line" class="band-path" d="" />
-                
-                <!-- Intrinsic Fermi Level (Isolated only) -->
-                <line id="efi-line" class="dashed-line" style="transition: all 0.4s ease;" />
-                <text id="efi-label" class="label math" x="760">E_{Fi}</text>
-
-                <text id="ec-label" x="760" class="label math">E_c</text>
-                <text id="ev-label" x="760" class="label math">E_v</text>
-
-                <!-- Annotations & Extension Lines -->
-                <!-- x=0 Label -->
-                <text id="label-x0" x="210" y="490" class="label math" style="font-size: 15px; transition: all 0.4s ease;">x = 0</text>
-                
-                <!-- x=xn Dashed line and Label -->
-                <line id="line-xn" class="dashed-line" />
-                <text id="label-xn" class="label math" style="font-size: 15px;">x = x_n</text>
-
-                <!-- Isolated Arrows -->
-                <line id="arrow-phi-m" stroke="var(--primary)" stroke-width="1.5" marker-start="url(#arrow-start)" marker-end="url(#arrow-end)" style="transition: all 0.4s ease;" />
-                <text id="label-phi-m" class="label-blue math">eφ_m</text>
-
-                <line id="arrow-chi" stroke="var(--primary)" stroke-width="1.5" marker-start="url(#arrow-start)" marker-end="url(#arrow-end)" style="transition: all 0.4s ease;" />
-                <text id="label-chi" class="label-blue math">eχ</text>
-
-                <line id="arrow-phi-s" stroke="var(--primary)" stroke-width="1.5" marker-start="url(#arrow-start)" marker-end="url(#arrow-end)" style="transition: all 0.4s ease;" />
-                <text id="label-phi-s" class="label-blue math">eφ_s</text>
-
-                <!-- Barrier Height Arrow & Text -->
-                <line id="ext-ec0" class="dashed-line" stroke="#aaa" />
-                <line id="arrow-phi" stroke="var(--primary)" stroke-width="1.5" marker-start="url(#arrow-start)" marker-end="url(#arrow-end)" />
-                <text id="label-phi" class="label-blue math">eφ_{B0}</text>
-                <text id="label-phi-name" class="label-small">Schottky Barrier Height</text>
-
-                <!-- Built-in Potential Arrow & Text -->
-                <line id="ext-c0-right" class="dashed-line" stroke="#aaa" />
-                <line id="arrow-vbi" stroke="var(--primary)" stroke-width="1.5" marker-start="url(#arrow-start)" marker-end="url(#arrow-end)" />
-                <text id="label-vbi" class="label-blue math">e(V_{bi})</text>
-
-                <!-- Author Signature -->
-                <text x="780" y="605" class="label" style="font-size: 14px; fill: #64748b; text-anchor: end; font-weight: normal;">Mahmudul Hasan(2202156)</text>
-            </svg>
-        </div>
-
-        <div class="analysis-box">
-            <div class="analysis-data" id="analysis-text">
-                <!-- Injected via JS -->
-            </div>
-            <div id="contact-status"></div>
-        </div>
-
+  <div class="hdr">
+    <div>
+      <p class="hdr-eyebrow">Schottky–Mott Rule · Bias-Dependent Depletion</p>
+      <h1>Schottky Diode Band Diagram Simulator</h1>
     </div>
+    <p class="hdr-sub">Rectifying metal–semiconductor junctions under forward and reverse bias — barrier height stays fixed, depletion width doesn't.</p>
+  </div>
 
-    <script>
-        // Physics Material Data
-        const metals = {
-            "Pt": 5.65, "Pd": 5.12, "Au": 5.10, "W": 4.55, "TiSi2": 4.50, "Ti": 4.33, "Al": 4.10, "Mg": 3.66
-        };
+  <div class="readout" aria-live="polite">
+    <div class="readout-cell">
+      <div class="readout-label">Contact behaviour</div>
+      <div class="readout-value" id="ro-type">—</div>
+    </div>
+    <div class="readout-cell">
+      <div class="readout-label" id="ro-phib-label">Barrier height φ_B0</div>
+      <div class="readout-value" id="ro-phib">— eV</div>
+    </div>
+    <div class="readout-cell">
+      <div class="readout-label">Built-in potential V_bi</div>
+      <div class="readout-value" id="ro-vbi">— V</div>
+    </div>
+    <div class="readout-cell">
+      <div class="readout-label">Applied bias V_app</div>
+      <div class="readout-value" id="ro-vapp">— V</div>
+    </div>
+  </div>
 
-        const semiconductors = {
-            "Si": { eg: 1.12, chi: 4.05 },
-            "Ge": { eg: 0.66, chi: 4.00 },
-            "GaAs": { eg: 1.42, chi: 4.07 },
-            "GaN": { eg: 3.40, chi: 4.10 },
-            "AlAs": { eg: 2.16, chi: 3.50 }
-        };
+  <div class="controls">
+    <div class="ctrl-col">
+      <label class="ctrl-label" for="metal-select">Metal</label>
+      <select id="metal-select">
+        <option value="Pt">Platinum (Pt) — 5.65 eV</option>
+        <option value="Pd">Palladium (Pd) — 5.12 eV</option>
+        <option value="Au">Gold (Au) — 5.10 eV</option>
+        <option value="W">Tungsten (W) — 4.55 eV</option>
+        <option value="TiSi2">Titanium disilicide (TiSi₂) — 4.50 eV</option>
+        <option value="Ti">Titanium (Ti) — 4.33 eV</option>
+        <option value="Al" selected>Aluminum (Al) — 4.10 eV</option>
+        <option value="Mg">Magnesium (Mg) — 3.66 eV</option>
+      </select>
+      <div class="mat-chip" id="metal-chip">—</div>
+    </div>
+    <div class="ctrl-col">
+      <label class="ctrl-label" for="semi-select">Semiconductor</label>
+      <select id="semi-select">
+        <option value="Si" selected>Silicon (Si)</option>
+        <option value="Ge">Germanium (Ge)</option>
+        <option value="GaAs">Gallium arsenide (GaAs)</option>
+        <option value="GaN">Gallium nitride (GaN)</option>
+        <option value="AlAs">Aluminum arsenide (AlAs)</option>
+      </select>
+      <select id="doping-select">
+        <option value="n" selected>n-type (moderate)</option>
+        <option value="n+">n+ type (heavy)</option>
+        <option value="p">p-type (moderate)</option>
+        <option value="p+">p+ type (heavy)</option>
+      </select>
+      <div class="mat-chip" id="semi-chip">—</div>
+    </div>
+    <div class="ctrl-col">
+      <label class="ctrl-label" for="bias-select">Applied bias</label>
+      <select id="bias-select">
+        <option value="isolated">Isolated (before contact)</option>
+        <option value="eq" selected>Equilibrium (V = 0)</option>
+        <option value="forward">Forward bias</option>
+        <option value="reverse">Reverse bias</option>
+      </select>
+      <div class="mat-chip">Depletion width scales with √(V_bi − V_app).</div>
+    </div>
+  </div>
 
-        const X_INT = 250; 
-        const Y_EF = 320;  // Metal Fermi Level Y-coordinate (Base)
-        const SCALE = 65;  // Pixels per eV
+  <div class="scope">
+    <svg viewBox="0 0 800 620" id="diagram" role="img" aria-label="Schottky diode energy band diagram">
+      <defs>
+        <marker id="arrow-start" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto-start-reverse">
+          <path d="M 10 0 L 0 5 L 10 10 z" fill="#4ea1ff" />
+        </marker>
+        <marker id="arrow-end" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#4ea1ff" />
+        </marker>
+      </defs>
 
-        function updateDiagram() {
-            const metalKey = document.getElementById('metal-select').value;
-            const semiKey = document.getElementById('semi-select').value;
-            const doping = document.getElementById('doping-select').value;
-            const biasState = document.getElementById('bias-select').value;
+      <path id="metal-region" fill="var(--metal-fill)" d="" style="transition: d 0.4s ease;" />
 
-            const isIsolated = (biasState === 'isolated');
+      <line id="surf-m" y1="120" y2="570" stroke="#3a465a" stroke-width="1.5" style="transition: all 0.4s ease;" />
+      <line id="surf-s" y1="120" y2="570" stroke="#3a465a" stroke-width="1.5" style="transition: all 0.4s ease;" />
 
-            const wf_m = metals[metalKey];
-            const chi = semiconductors[semiKey].chi;
-            const eg = semiconductors[semiKey].eg;
+      <line id="vac-m" stroke="#5a6b82" stroke-width="1.5" style="transition: all 0.4s ease;" />
+      <line id="vac-s" stroke="#5a6b82" stroke-width="1.5" style="transition: all 0.4s ease;" />
 
-            const offset = (doping.includes('+')) ? 0.05 : 0.25;
-            const isNType = doping.includes('n');
+      <path id="val-region" fill="var(--val-fill)" d="" style="transition: d 0.4s ease;" />
 
-            let wf_s, phi_b, V_bi, isOhmic;
+      <line id="ef-metal" class="ef-line" />
+      <text id="ef-label-m" class="label-blue math">E_Fm</text>
+      <line id="ef-semi" class="ef-line" />
+      <text id="ef-label-s" class="label-blue math">E_Fs</text>
 
-            // Ideal Base Mathematics
-            if (isNType) {
-                wf_s = chi + offset; 
-                phi_b = wf_m - chi;  
-                V_bi = wf_m - wf_s;  
-            } else {
-                wf_s = (chi + eg) - offset;
-                phi_b = (chi + eg) - wf_m; 
-                V_bi = wf_s - wf_m;
-            }
+      <path id="ec-line" class="band-path" d="" />
+      <path id="ev-line" class="band-path" d="" />
 
-            isOhmic = V_bi <= 0;
+      <line id="efi-line" class="dashed-line" style="transition: all 0.4s ease;" />
+      <text id="efi-label" class="label math" x="760">E_Fi</text>
 
-            // Handle Bias 
-            let V_app = 0;
-            if (!isOhmic && !isIsolated) {
-                if (biasState === 'forward') {
-                    V_app = Math.min(0.25, V_bi * 0.8); 
-                } else if (biasState === 'reverse') {
-                    V_app = -0.8;
-                }
-            }
+      <text id="ec-label" x="760" class="label math">E_c</text>
+      <text id="ev-label" x="760" class="label math">E_v</text>
 
-            let energy_shift_s = 0; 
-            if (!isIsolated) {
-                if (isNType) energy_shift_s = V_app; 
-                else energy_shift_s = -V_app;        
-            }
+      <text id="label-x0" x="210" y="490" class="label math" style="font-size:13px; transition: all 0.4s ease;">x = 0</text>
 
-            // Positions and Layout
-            let X_M_END = isIsolated ? 200 : X_INT;
-            let X_S_START = isIsolated ? 320 : X_INT;
-            let Y_VAC = 50;
+      <line id="line-xn" class="dashed-line" />
+      <text id="label-xn" class="label math" style="font-size:13px;">x = x_n</text>
 
-            let Y_EF_m, Y_EF_s, Y_cb, Y_vb, Y_c0, Y_v0, Y_EFi;
+      <line id="arrow-phi-m" stroke="var(--phys)" stroke-width="1.5" marker-start="url(#arrow-start)" marker-end="url(#arrow-end)" style="transition: all 0.4s ease;" />
+      <text id="label-phi-m" class="label-blue math">eφ_m</text>
 
-            if (isIsolated) {
-                Y_EF_m = Y_VAC + wf_m * SCALE;
-                Y_cb = Y_VAC + chi * SCALE;
-                Y_vb = Y_cb + eg * SCALE;
-                Y_EF_s = Y_VAC + wf_s * SCALE;
-                Y_EFi = Y_cb + (eg / 2) * SCALE;
-                Y_c0 = Y_cb; // Flat bands
-                Y_v0 = Y_vb; // Flat bands
-            } else {
-                Y_EF_m = Y_EF;
-                Y_EF_s = Y_EF_m - (energy_shift_s * SCALE);
-                
-                if (isNType) {
-                    Y_c0 = Y_EF_m - (phi_b * SCALE);
-                    Y_v0 = Y_c0 + (eg * SCALE);
-                    Y_cb = Y_EF_s - (offset * SCALE);
-                    Y_vb = Y_cb + (eg * SCALE);
-                } else {
-                    Y_v0 = Y_EF_m + (phi_b * SCALE);
-                    Y_c0 = Y_v0 - (eg * SCALE);
-                    Y_vb = Y_EF_s + (offset * SCALE);
-                    Y_cb = Y_vb - (eg * SCALE);
-                }
-            }
+      <line id="arrow-chi" stroke="var(--phys)" stroke-width="1.5" marker-start="url(#arrow-start)" marker-end="url(#arrow-end)" style="transition: all 0.4s ease;" />
+      <text id="label-chi" class="label-blue math">eχ</text>
 
-            // Depletion Width scaled dynamically
-            let base_W = (doping.includes('+')) ? 90 : 220;
-            let W = 0;
-            if (!isOhmic && !isIsolated) {
-                let V_total = V_bi - V_app;
-                if (V_total < 0.05) V_total = 0.05; 
-                W = base_W * Math.sqrt(V_total / V_bi);
-            }
-            const X_END = X_S_START + W;
-            const X_MAX = 750;
+      <line id="arrow-phi-s" stroke="var(--phys)" stroke-width="1.5" marker-start="url(#arrow-start)" marker-end="url(#arrow-end)" style="transition: all 0.4s ease;" />
+      <text id="label-phi-s" class="label-blue math">eφ_s</text>
 
-            // === 1. Draw Metal Shape ===
-            const m_d = `M 0,${Y_EF_m + 60} L 100,${Y_EF_m + 60} L 100,${Y_EF_m} L ${X_M_END},${Y_EF_m} L ${X_M_END},570 L 0,570 Z`;
-            document.getElementById('metal-region').setAttribute('d', m_d);
+      <line id="ext-ec0" class="dashed-line" stroke="#5a6b82" />
+      <line id="arrow-phi" stroke="var(--phys)" stroke-width="1.5" marker-start="url(#arrow-start)" marker-end="url(#arrow-end)" />
+      <text id="label-phi" class="label-blue math">eφ_B0</text>
+      <text id="label-phi-name" class="label-small">Schottky Barrier Height</text>
 
-            // === 2. Draw Semiconductor Bands ===
-            let dEc = `M ${X_S_START},${Y_c0} `;
-            let dEv = `M ${X_S_START},${Y_v0} `;
-            
-            if (W > 0) {
-                for(let i=0; i<=W; i+=5) {
-                    let x = X_S_START + i;
-                    let ratio = i/W;
-                    let bend = Math.pow(1 - ratio, 2);
-                    let y_c = Y_cb + (Y_c0 - Y_cb) * bend;
-                    let y_v = Y_vb + (Y_v0 - Y_vb) * bend;
-                    dEc += `L ${x},${y_c} `;
-                    dEv += `L ${x},${y_v} `;
-                }
-            } else {
-                dEc += `L ${X_S_START},${Y_cb} `;
-                dEv += `L ${X_S_START},${Y_vb} `;
-            }
-            dEc += `L ${X_MAX},${Y_cb}`;
-            dEv += `L ${X_MAX},${Y_vb}`;
+      <line id="ext-c0-right" class="dashed-line" stroke="#5a6b82" />
+      <line id="arrow-vbi" stroke="var(--phys)" stroke-width="1.5" marker-start="url(#arrow-start)" marker-end="url(#arrow-end)" />
+      <text id="label-vbi" class="label-blue math">e(V_bi)</text>
 
-            document.getElementById('ec-line').setAttribute('d', dEc);
-            document.getElementById('ev-line').setAttribute('d', dEv);
+      <text x="780" y="605" class="label" style="font-size:12.5px; fill:#3a465a; text-anchor:end; font-weight:normal;">Mahmudul Hasan (2202156)</text>
+    </svg>
+  </div>
 
-            let dEvFill = dEv + ` L ${X_MAX},570 L ${X_S_START},570 Z`;
-            document.getElementById('val-region').setAttribute('d', dEvFill);
+  <div class="legend">
+    <div class="legend-item"><div class="legend-color" style="background:#e8edf5;"></div>Bands, E_c / E_v</div>
+    <div class="legend-item"><div class="legend-color" style="background: var(--phys); border-bottom:2px dashed var(--phys); height:0; width:18px; border-radius:0;"></div>Fermi level, E_F</div>
+    <div class="legend-item"><div class="legend-color" style="background: var(--phys);"></div>φ_B0 / V_bi annotations</div>
+  </div>
 
-            // Update Surfaces
-            document.getElementById('surf-m').setAttribute('x1', X_M_END);
-            document.getElementById('surf-m').setAttribute('x2', X_M_END);
-            document.getElementById('surf-m').setAttribute('y1', isIsolated ? Y_VAC : 120);
-            
-            document.getElementById('surf-s').setAttribute('x1', X_S_START);
-            document.getElementById('surf-s').setAttribute('x2', X_S_START);
-            document.getElementById('surf-s').setAttribute('y1', isIsolated ? Y_VAC : 120);
+  <div class="analysis-box" id="status-container">
+    <div class="analysis-data" id="analysis-text"></div>
+    <div id="contact-status"></div>
+  </div>
 
-            // Positioning text and lines
-            document.getElementById('ec-label').setAttribute('y', Y_cb + 5);
-            document.getElementById('ev-label').setAttribute('y', Y_vb + 5);
-            
-            document.getElementById('ef-metal').setAttribute('x1', 50);
-            document.getElementById('ef-metal').setAttribute('x2', X_M_END);
-            document.getElementById('ef-metal').setAttribute('y1', Y_EF_m);
-            document.getElementById('ef-metal').setAttribute('y2', Y_EF_m);
-            
-            document.getElementById('ef-semi').setAttribute('x1', X_S_START);
-            document.getElementById('ef-semi').setAttribute('x2', 750);
-            document.getElementById('ef-semi').setAttribute('y1', Y_EF_s);
-            document.getElementById('ef-semi').setAttribute('y2', Y_EF_s);
+  <br/>
 
-            document.getElementById('ef-label-m').setAttribute('x', 50);
-            document.getElementById('ef-label-m').setAttribute('y', Y_EF_m - 10);
-            document.getElementById('ef-label-s').setAttribute('x', 760);
-            document.getElementById('ef-label-s').setAttribute('y', Y_EF_s + 5);
+  <details class="theory">
+    <summary>How to read this diagram</summary>
+    <div class="theory-body">
+      <p>The <b>barrier height φ_B0</b> is anchored to the metal's Fermi level and never moves — it's fixed by the metal and semiconductor alone (Schottky–Mott rule), independent of doping or bias. Everything that <i>does</i> change is on the semiconductor side:</p>
+      <ul>
+        <li><b>Built-in potential</b>, <code>V_bi</code>, is how much the bands must bend to align the bulk Fermi levels — it also depends on doping (how close E_F already sits to the band edge far from the junction).</li>
+        <li><b>Forward bias</b> reduces the effective barrier the majority carriers see (<code>V_bi − V_F</code>), narrowing the depletion width.</li>
+        <li><b>Reverse bias</b> adds to it (<code>V_bi + V_R</code>), widening the depletion region — this is what lets a Schottky diode block current in one direction.</li>
+        <li>If the doping and materials make <code>V_bi ≤ 0</code>, there's no barrier at all — carriers accumulate at the surface instead, and the "diode" behaves as an ohmic contact.</li>
+      </ul>
+    </div>
+  </details>
 
-            document.getElementById('label-x0').setAttribute('x', X_S_START - 40);
+  <footer>Model: Schottky–Mott barrier · bias-scaled depletion width (√(V_bi − V_app))</footer>
+</div>
 
-            // === 3. Annotations ===
-            const displayIsolated = isIsolated ? 'block' : 'none';
-            const displayConnected = (!isIsolated && !isOhmic) ? 'block' : 'none';
-            
-            // Toggle Isolated elements
-            document.getElementById('vac-m').style.display = displayIsolated;
-            document.getElementById('vac-s').style.display = displayIsolated;
-            document.getElementById('arrow-phi-m').style.display = displayIsolated;
-            document.getElementById('label-phi-m').style.display = displayIsolated;
-            document.getElementById('arrow-chi').style.display = displayIsolated;
-            document.getElementById('label-chi').style.display = displayIsolated;
-            document.getElementById('arrow-phi-s').style.display = displayIsolated;
-            document.getElementById('label-phi-s').style.display = displayIsolated;
-            document.getElementById('efi-line').style.display = displayIsolated;
-            document.getElementById('efi-label').style.display = displayIsolated;
+<script>
+(function(){
+  "use strict";
 
-            // Toggle Connected Schottky elements
-            document.getElementById('arrow-phi').style.display = displayConnected;
-            document.getElementById('label-phi').style.display = displayConnected;
-            document.getElementById('label-phi-name').style.display = displayConnected;
-            document.getElementById('arrow-vbi').style.display = displayConnected;
-            document.getElementById('label-vbi').style.display = displayConnected;
-            document.getElementById('ext-ec0').style.display = displayConnected;
-            document.getElementById('ext-c0-right').style.display = displayConnected;
-            
-            document.getElementById('line-xn').setAttribute('x1', X_END);
-            document.getElementById('line-xn').setAttribute('x2', X_END);
-            document.getElementById('line-xn').setAttribute('y1', isNType ? Y_cb - 20 : Y_cb + 20);
-            document.getElementById('line-xn').setAttribute('y2', isNType ? Y_vb + 20 : Y_vb - 20);
-            document.getElementById('label-xn').setAttribute('x', X_END - 20);
-            document.getElementById('label-xn').setAttribute('y', isNType ? Y_vb + 45 : Y_cb - 30);
+  const metals = { Pt:5.65, Pd:5.12, Au:5.10, W:4.55, TiSi2:4.50, Ti:4.33, Al:4.10, Mg:3.66 };
+  const semiconductors = {
+    Si:   { eg:1.12, chi:4.05, name:'Silicon (Si)' },
+    Ge:   { eg:0.66, chi:4.00, name:'Germanium (Ge)' },
+    GaAs: { eg:1.42, chi:4.07, name:'Gallium Arsenide (GaAs)' },
+    GaN:  { eg:3.40, chi:4.10, name:'Gallium Nitride (GaN)' },
+    AlAs: { eg:2.16, chi:3.50, name:'Aluminum Arsenide (AlAs)' }
+  };
 
-            if (isIsolated || isOhmic) {
-                document.getElementById('line-xn').style.display = 'none';
-                document.getElementById('label-xn').style.display = 'none';
-            } else {
-                document.getElementById('line-xn').style.display = 'block';
-                document.getElementById('label-xn').style.display = 'block';
-            }
+  const X_INT = 250;
+  const Y_EF  = 320;
+  const SCALE = 65;
 
-            if (isIsolated) {
-                document.getElementById('vac-m').setAttribute('x1', X_M_END - 80);
-                document.getElementById('vac-m').setAttribute('y1', Y_VAC);
-                document.getElementById('vac-m').setAttribute('x2', X_M_END);
-                document.getElementById('vac-m').setAttribute('y2', Y_VAC);
+  // ---- Cache DOM references once ----
+  const el = {};
+  ['metal-select','semi-select','doping-select','bias-select','metal-chip','semi-chip',
+   'metal-region','surf-m','surf-s','vac-m','vac-s','val-region',
+   'ef-metal','ef-label-m','ef-semi','ef-label-s','ec-line','ev-line',
+   'efi-line','efi-label','ec-label','ev-label','label-x0','line-xn','label-xn',
+   'arrow-phi-m','label-phi-m','arrow-chi','label-chi','arrow-phi-s','label-phi-s',
+   'ext-ec0','arrow-phi','label-phi','label-phi-name','ext-c0-right','arrow-vbi','label-vbi',
+   'analysis-text','status-container','contact-status',
+   'ro-type','ro-phib','ro-phib-label','ro-vbi','ro-vapp'
+  ].forEach(id => { el[id.replace(/-([a-z])/g, (_,c)=>c.toUpperCase())] = document.getElementById(id); });
 
-                document.getElementById('vac-s').setAttribute('x1', X_S_START);
-                document.getElementById('vac-s').setAttribute('y1', Y_VAC);
-                document.getElementById('vac-s').setAttribute('x2', X_S_START + 120);
-                document.getElementById('vac-s').setAttribute('y2', Y_VAC);
+  function setAttrs(node, attrs){ for (const k in attrs) node.setAttribute(k, attrs[k]); }
+  function showAll(nodes, display){ nodes.forEach(n => n.style.display = display); }
 
-                let m_x = X_M_END - 40;
-                document.getElementById('arrow-phi-m').setAttribute('x1', m_x);
-                document.getElementById('arrow-phi-m').setAttribute('y1', Y_VAC + 5);
-                document.getElementById('arrow-phi-m').setAttribute('x2', m_x);
-                document.getElementById('arrow-phi-m').setAttribute('y2', Y_EF_m - 5);
-                document.getElementById('label-phi-m').setAttribute('x', m_x - 35);
-                document.getElementById('label-phi-m').setAttribute('y', (Y_VAC + Y_EF_m)/2 + 5);
+  function updateDiagram(){
+    const metalKey = el.metalSelect.value;
+    const semiKey = el.semiSelect.value;
+    const doping = el.dopingSelect.value;
+    const biasState = el.biasSelect.value;
+    const isIsolated = (biasState === 'isolated');
 
-                let chi_x = X_S_START + 30;
-                document.getElementById('arrow-chi').setAttribute('x1', chi_x);
-                document.getElementById('arrow-chi').setAttribute('y1', Y_VAC + 5);
-                document.getElementById('arrow-chi').setAttribute('x2', chi_x);
-                document.getElementById('arrow-chi').setAttribute('y2', Y_cb - 5);
-                document.getElementById('label-chi').setAttribute('x', chi_x - 25);
-                document.getElementById('label-chi').setAttribute('y', (Y_VAC + Y_cb)/2 + 5);
+    const wf_m = metals[metalKey];
+    const sm = semiconductors[semiKey];
+    const chi = sm.chi, eg = sm.eg;
 
-                let s_x = X_S_START + 90;
-                document.getElementById('arrow-phi-s').setAttribute('x1', s_x);
-                document.getElementById('arrow-phi-s').setAttribute('y1', Y_VAC + 5);
-                document.getElementById('arrow-phi-s').setAttribute('x2', s_x);
-                document.getElementById('arrow-phi-s').setAttribute('y2', Y_EF_s - 5);
-                document.getElementById('label-phi-s').setAttribute('x', s_x + 10);
-                document.getElementById('label-phi-s').setAttribute('y', (Y_VAC + Y_EF_s)/2 + 5);
+    el.metalChip.textContent = `Φ_m = ${wf_m.toFixed(2)} eV`;
+    el.semiChip.textContent = `${sm.name} · Eg = ${eg.toFixed(2)} eV · χ = ${chi.toFixed(2)} eV`;
 
-                document.getElementById('efi-line').setAttribute('x1', X_S_START);
-                document.getElementById('efi-line').setAttribute('y1', Y_EFi);
-                document.getElementById('efi-line').setAttribute('x2', X_MAX);
-                document.getElementById('efi-line').setAttribute('y2', Y_EFi);
-                document.getElementById('efi-label').setAttribute('y', Y_EFi + 5);
-            } else if (!isOhmic) {
-                let vbi_text = "e(V_{bi})";
-                if (biasState === 'forward') vbi_text = "e(V_{bi} - V_F)";
-                else if (biasState === 'reverse') vbi_text = "e(V_{bi} + V_R)";
+    const offset = doping.includes('+') ? 0.05 : 0.25;
+    const isNType = doping.includes('n');
 
-                if (isNType) {
-                    let extX = X_INT - 60;
-                    document.getElementById('ext-ec0').setAttribute('x1', extX);
-                    document.getElementById('ext-ec0').setAttribute('y1', Y_c0);
-                    document.getElementById('ext-ec0').setAttribute('x2', X_INT);
-                    document.getElementById('ext-ec0').setAttribute('y2', Y_c0);
+    let wf_s, phi_b, V_bi;
+    if (isNType) {
+      wf_s = chi + offset;
+      phi_b = wf_m - chi;
+      V_bi = wf_m - wf_s;
+    } else {
+      wf_s = (chi + eg) - offset;
+      phi_b = (chi + eg) - wf_m;
+      V_bi = wf_s - wf_m;
+    }
+    const isOhmic = V_bi <= 0;
 
-                    document.getElementById('arrow-phi').setAttribute('x1', extX + 15);
-                    document.getElementById('arrow-phi').setAttribute('y1', Y_c0 + 5);
-                    document.getElementById('arrow-phi').setAttribute('x2', extX + 15);
-                    document.getElementById('arrow-phi').setAttribute('y2', Y_EF_m - 5);
-                    
-                    document.getElementById('label-phi').textContent = "eφ_B0";
-                    document.getElementById('label-phi').setAttribute('x', extX - 25);
-                    document.getElementById('label-phi').setAttribute('y', (Y_c0 + Y_EF_m)/2 + 5);
-                    document.getElementById('label-phi-name').setAttribute('x', extX - 50);
-                    document.getElementById('label-phi-name').setAttribute('y', (Y_c0 + Y_EF_m)/2 + 25);
+    // Applied voltage. Forward is self-limited to a fraction of V_bi so the
+    // barrier can never invert; reverse gets the same treatment below via
+    // the depletion-width clamp, so a near-zero V_bi junction can't blow the
+    // depletion width off the edge of the canvas.
+    let V_app = 0;
+    if (!isOhmic && !isIsolated) {
+      if (biasState === 'forward') V_app = Math.min(0.25, V_bi * 0.8);
+      else if (biasState === 'reverse') V_app = -0.8;
+    }
 
-                    document.getElementById('ext-c0-right').setAttribute('x1', X_INT);
-                    document.getElementById('ext-c0-right').setAttribute('y1', Y_c0);
-                    document.getElementById('ext-c0-right').setAttribute('x2', X_END);
-                    document.getElementById('ext-c0-right').setAttribute('y2', Y_c0);
+    const energy_shift_s = isIsolated ? 0 : (isNType ? V_app : -V_app);
 
-                    document.getElementById('arrow-vbi').setAttribute('x1', X_END);
-                    document.getElementById('arrow-vbi').setAttribute('y1', Y_c0 + 5);
-                    document.getElementById('arrow-vbi').setAttribute('x2', X_END);
-                    document.getElementById('arrow-vbi').setAttribute('y2', Y_cb - 5);
+    const X_M_END = isIsolated ? 200 : X_INT;
+    const X_S_START = isIsolated ? 320 : X_INT;
+    const Y_VAC = 50;
 
-                    document.getElementById('label-vbi').textContent = vbi_text;
-                    document.getElementById('label-vbi').setAttribute('x', X_END + 10);
-                    document.getElementById('label-vbi').setAttribute('y', (Y_c0 + Y_cb)/2 + 5);
+    let Y_EF_m, Y_EF_s, Y_cb, Y_vb, Y_c0, Y_v0, Y_EFi;
 
-                } else {
-                    let extX = X_INT - 60;
-                    document.getElementById('ext-ec0').setAttribute('x1', extX);
-                    document.getElementById('ext-ec0').setAttribute('y1', Y_v0);
-                    document.getElementById('ext-ec0').setAttribute('x2', X_INT);
-                    document.getElementById('ext-ec0').setAttribute('y2', Y_v0);
+    if (isIsolated) {
+      Y_EF_m = Y_VAC + wf_m * SCALE;
+      Y_cb = Y_VAC + chi * SCALE;
+      Y_vb = Y_cb + eg * SCALE;
+      Y_EF_s = Y_VAC + wf_s * SCALE;
+      Y_EFi = Y_cb + (eg / 2) * SCALE;
+      Y_c0 = Y_cb;
+      Y_v0 = Y_vb;
+    } else {
+      Y_EF_m = Y_EF;
+      Y_EF_s = Y_EF_m - (energy_shift_s * SCALE);
+      if (isNType) {
+        Y_c0 = Y_EF_m - (phi_b * SCALE);
+        Y_v0 = Y_c0 + eg * SCALE;
+        Y_cb = Y_EF_s - (offset * SCALE);
+        Y_vb = Y_cb + eg * SCALE;
+      } else {
+        Y_v0 = Y_EF_m + (phi_b * SCALE);
+        Y_c0 = Y_v0 - eg * SCALE;
+        Y_vb = Y_EF_s + (offset * SCALE);
+        Y_cb = Y_vb - eg * SCALE;
+      }
+    }
 
-                    document.getElementById('arrow-phi').setAttribute('x1', extX + 15);
-                    document.getElementById('arrow-phi').setAttribute('y1', Y_EF_m + 5);
-                    document.getElementById('arrow-phi').setAttribute('x2', extX + 15);
-                    document.getElementById('arrow-phi').setAttribute('y2', Y_v0 - 5);
-                    
-                    document.getElementById('label-phi').textContent = "eφ_Bp";
-                    document.getElementById('label-phi').setAttribute('x', extX - 25);
-                    document.getElementById('label-phi').setAttribute('y', (Y_v0 + Y_EF_m)/2 + 5);
-                    document.getElementById('label-phi-name').setAttribute('x', extX - 50);
-                    document.getElementById('label-phi-name').setAttribute('y', (Y_v0 + Y_EF_m)/2 + 25);
+    // Depletion width, scaled by the bias-adjusted built-in potential.
+    // Clamped to the visible canvas: near-threshold junctions (V_bi -> 0)
+    // used to blow this up to 1000+ px under reverse bias, pushing x_n and
+    // the band curve off the right edge of the diagram (self-intersecting
+    // path). The clamp keeps the diagram valid for every material/doping
+    // combination while still showing the width growing toward the limit.
+    const base_W = doping.includes('+') ? 90 : 220;
+    const MAX_W = 460; // stays comfortably inside X_MAX (750) from X_S_START (250)
+    let W = 0;
+    if (!isOhmic && !isIsolated) {
+      let V_total = V_bi - V_app;
+      if (V_total < 0.05) V_total = 0.05;
+      W = Math.min(MAX_W, base_W * Math.sqrt(V_total / V_bi));
+    }
+    const X_END = X_S_START + W;
+    const X_MAX = 750;
 
-                    document.getElementById('ext-c0-right').setAttribute('x1', X_INT);
-                    document.getElementById('ext-c0-right').setAttribute('y1', Y_v0);
-                    document.getElementById('ext-c0-right').setAttribute('x2', X_END);
-                    document.getElementById('ext-c0-right').setAttribute('y2', Y_v0);
+    setAttrs(el.metalRegion, { d: `M 0,${Y_EF_m + 60} L 100,${Y_EF_m + 60} L 100,${Y_EF_m} L ${X_M_END},${Y_EF_m} L ${X_M_END},570 L 0,570 Z` });
 
-                    document.getElementById('arrow-vbi').setAttribute('x1', X_END);
-                    document.getElementById('arrow-vbi').setAttribute('y1', Y_vb + 5);
-                    document.getElementById('arrow-vbi').setAttribute('x2', X_END);
-                    document.getElementById('arrow-vbi').setAttribute('y2', Y_v0 - 5);
+    // For an ohmic pairing (no barrier), still draw a short smooth bend
+    // instead of the flat state so the diagram never shows a hard vertical
+    // jump in the band edge right at the interface.
+    const bendW = (!isIsolated && W === 0 && !isOhmic) ? 0 : (isOhmic && !isIsolated ? 40 : W);
 
-                    document.getElementById('label-vbi').textContent = vbi_text;
-                    document.getElementById('label-vbi').setAttribute('x', X_END + 10);
-                    document.getElementById('label-vbi').setAttribute('y', (Y_v0 + Y_vb)/2 + 5);
-                }
-            }
+    let dEc = `M ${X_S_START},${Y_c0} `;
+    let dEv = `M ${X_S_START},${Y_v0} `;
+    if (bendW > 0) {
+      for (let i = 0; i <= bendW; i += 5) {
+        const ratio = i / bendW;
+        const bend = Math.pow(1 - ratio, 2);
+        const x = X_S_START + i;
+        dEc += `L ${x},${Y_cb + (Y_c0 - Y_cb) * bend} `;
+        dEv += `L ${x},${Y_vb + (Y_v0 - Y_vb) * bend} `;
+      }
+    } else {
+      dEc += `L ${X_S_START},${Y_cb} `;
+      dEv += `L ${X_S_START},${Y_vb} `;
+    }
+    dEc += `L ${X_MAX},${Y_cb}`;
+    dEv += `L ${X_MAX},${Y_vb}`;
 
-            // === 4. Update Analysis ===
-            const htmlText = `
-                Metal Work Function (Φ<sub>m</sub>): <span class="data-value">${wf_m.toFixed(2)} eV</span><br>
-                Semiconductor Work Function (Φ<sub>s</sub>): <span class="data-value">${wf_s.toFixed(2)} eV</span><br>
-                Calculated Barrier (Φ<sub>B0</sub>): <span class="data-value">${isOhmic ? '0.00' : Math.abs(phi_b).toFixed(2)} eV</span><br>
-                Built-in Potential (V<sub>bi</sub>): <span class="data-value">${V_bi.toFixed(2)} V</span>
-            `;
-            document.getElementById('analysis-text').innerHTML = htmlText;
-            
-            const statusBox = document.getElementById('contact-status');
-            
-            if (isIsolated) {
-                statusBox.innerHTML = `<span style="color: var(--primary); font-weight: bold; font-size: 1.2rem;">Isolated (Before Contact)</span><br><span style="color: #555;">(Vacuum levels aligned. No band bending has occurred yet.)</span>`;
-            } else if (isOhmic) {
-                statusBox.innerHTML = `<span class="ohmic-warning" style="font-size: 1.2rem;">Ohmic Contact / Accumulation Layer</span><br><span style="color: #555;">(No rectifying barrier is formed.)</span>`;
-            } else {
-                let stateLabel = "Equilibrium";
-                if (biasState === 'forward') stateLabel = `Forward Bias (${V_app.toFixed(2)}V)`;
-                if (biasState === 'reverse') stateLabel = `Reverse Bias (${Math.abs(V_app).toFixed(2)}V)`;
-                
-                statusBox.innerHTML = `<span style="color: var(--primary); font-weight: bold; font-size: 1.2rem;">Rectifying Contact - ${stateLabel}</span><br><span style="color: #555;">(Depletion width and band bending updated.)</span>`;
-            }
-        }
+    el.ecLine.setAttribute('d', dEc);
+    el.evLine.setAttribute('d', dEv);
+    el.valRegion.setAttribute('d', dEv + ` L ${X_MAX},570 L ${X_S_START},570 Z`);
 
-        window.onload = updateDiagram;
-    </script>
+    setAttrs(el.surfM, { x1:X_M_END, x2:X_M_END, y1: isIsolated ? Y_VAC : 120 });
+    setAttrs(el.surfS, { x1:X_S_START, x2:X_S_START, y1: isIsolated ? Y_VAC : 120 });
+
+    el.ecLabel.setAttribute('y', Y_cb + 5);
+    el.evLabel.setAttribute('y', Y_vb + 5);
+
+    setAttrs(el.efMetal, { x1:50, x2:X_M_END, y1:Y_EF_m, y2:Y_EF_m });
+    setAttrs(el.efSemi, { x1:X_S_START, x2:750, y1:Y_EF_s, y2:Y_EF_s });
+    setAttrs(el.efLabelM, { x:50, y:Y_EF_m - 10 });
+    setAttrs(el.efLabelS, { x:760, y:Y_EF_s + 5 });
+    el.labelX0.setAttribute('x', X_S_START - 40);
+
+    const displayIsolated = isIsolated ? 'block' : 'none';
+    const displayConnected = (!isIsolated && !isOhmic) ? 'block' : 'none';
+
+    showAll([el.vacM, el.vacS, el.arrowPhiM, el.labelPhiM, el.arrowChi, el.labelChi,
+             el.arrowPhiS, el.labelPhiS, el.efiLine, el.efiLabel], displayIsolated);
+    showAll([el.arrowPhi, el.labelPhi, el.labelPhiName, el.arrowVbi, el.labelVbi,
+              el.extEc0, el.extC0Right], displayConnected);
+
+    setAttrs(el.lineXn, {
+      x1:X_END, x2:X_END,
+      y1: isNType ? Y_cb - 20 : Y_cb + 20,
+      y2: isNType ? Y_vb + 20 : Y_vb - 20
+    });
+    setAttrs(el.labelXn, { x:X_END - 20, y: isNType ? Y_vb + 45 : Y_cb - 30 });
+
+    const showXn = !(isIsolated || isOhmic);
+    el.lineXn.style.display = showXn ? 'block' : 'none';
+    el.labelXn.style.display = showXn ? 'block' : 'none';
+
+    if (isIsolated) {
+      setAttrs(el.vacM, { x1:X_M_END - 80, y1:Y_VAC, x2:X_M_END, y2:Y_VAC });
+      setAttrs(el.vacS, { x1:X_S_START, y1:Y_VAC, x2:X_S_START + 120, y2:Y_VAC });
+
+      const m_x = X_M_END - 40;
+      setAttrs(el.arrowPhiM, { x1:m_x, y1:Y_VAC + 5, x2:m_x, y2:Y_EF_m - 5 });
+      setAttrs(el.labelPhiM, { x:m_x - 35, y:(Y_VAC + Y_EF_m) / 2 + 5 });
+
+      const chi_x = X_S_START + 30;
+      setAttrs(el.arrowChi, { x1:chi_x, y1:Y_VAC + 5, x2:chi_x, y2:Y_cb - 5 });
+      setAttrs(el.labelChi, { x:chi_x - 25, y:(Y_VAC + Y_cb) / 2 + 5 });
+
+      const s_x = X_S_START + 90;
+      setAttrs(el.arrowPhiS, { x1:s_x, y1:Y_VAC + 5, x2:s_x, y2:Y_EF_s - 5 });
+      setAttrs(el.labelPhiS, { x:s_x + 10, y:(Y_VAC + Y_EF_s) / 2 + 5 });
+
+      setAttrs(el.efiLine, { x1:X_S_START, y1:Y_EFi, x2:X_MAX, y2:Y_EFi });
+      el.efiLabel.setAttribute('y', Y_EFi + 5);
+
+    } else if (!isOhmic) {
+      let vbi_text = 'e(V_bi)';
+      if (biasState === 'forward') vbi_text = 'e(V_bi − V_F)';
+      else if (biasState === 'reverse') vbi_text = 'e(V_bi + V_R)';
+
+      if (isNType) {
+        const extX = X_INT - 60;
+        setAttrs(el.extEc0, { x1:extX, y1:Y_c0, x2:X_INT, y2:Y_c0 });
+        setAttrs(el.arrowPhi, { x1:extX + 15, y1:Y_c0 + 5, x2:extX + 15, y2:Y_EF_m - 5 });
+        el.labelPhi.textContent = 'eφ_B0';
+        setAttrs(el.labelPhi, { x:extX - 25, y:(Y_c0 + Y_EF_m) / 2 + 5 });
+        setAttrs(el.labelPhiName, { x:extX - 50, y:(Y_c0 + Y_EF_m) / 2 + 25 });
+
+        setAttrs(el.extC0Right, { x1:X_INT, y1:Y_c0, x2:X_END, y2:Y_c0 });
+        setAttrs(el.arrowVbi, { x1:X_END, y1:Y_c0 + 5, x2:X_END, y2:Y_cb - 5 });
+        el.labelVbi.textContent = vbi_text;
+        setAttrs(el.labelVbi, { x:X_END + 10, y:(Y_c0 + Y_cb) / 2 + 5 });
+
+      } else {
+        const extX = X_INT - 60;
+        setAttrs(el.extEc0, { x1:extX, y1:Y_v0, x2:X_INT, y2:Y_v0 });
+        setAttrs(el.arrowPhi, { x1:extX + 15, y1:Y_EF_m + 5, x2:extX + 15, y2:Y_v0 - 5 });
+        el.labelPhi.textContent = 'eφ_Bp';
+        setAttrs(el.labelPhi, { x:extX - 25, y:(Y_v0 + Y_EF_m) / 2 + 5 });
+        setAttrs(el.labelPhiName, { x:extX - 50, y:(Y_v0 + Y_EF_m) / 2 + 25 });
+
+        setAttrs(el.extC0Right, { x1:X_INT, y1:Y_v0, x2:X_END, y2:Y_v0 });
+        setAttrs(el.arrowVbi, { x1:X_END, y1:Y_vb + 5, x2:X_END, y2:Y_v0 - 5 });
+        el.labelVbi.textContent = vbi_text;
+        setAttrs(el.labelVbi, { x:X_END + 10, y:(Y_v0 + Y_vb) / 2 + 5 });
+      }
+    }
+
+    // === Analysis box ===
+    el.analysisText.innerHTML = `
+      Metal work function (Φ<sub>m</sub>): <span class="data-value">${wf_m.toFixed(2)} eV</span><br>
+      Semiconductor work function (Φ<sub>s</sub>): <span class="data-value">${wf_s.toFixed(2)} eV</span><br>
+      Barrier height (φ<sub>B0</sub>): <span class="data-value">${isOhmic ? '0.00' : Math.abs(phi_b).toFixed(2)} eV</span><br>
+      Built-in potential (V<sub>bi</sub>): <span class="data-value">${V_bi.toFixed(2)} V</span>
+    `;
+
+    el.statusContainer.className = 'analysis-box' + (isOhmic && !isIsolated ? ' ohmic' : '');
+
+    let typeLabel;
+    if (isIsolated) {
+      el.contactStatus.innerHTML = `<span style="color: var(--phys); font-weight:700; font-size:1.05rem;">Isolated (before contact)</span><br><span style="color: var(--text-dim); font-size:0.85rem;">Vacuum levels aligned — no band bending has occurred yet.</span>`;
+      typeLabel = 'Not yet in contact';
+    } else if (isOhmic) {
+      el.contactStatus.innerHTML = `<span style="color: var(--success); font-weight:700; font-size:1.05rem;">Ohmic Contact / Accumulation Layer</span><br><span style="color: var(--text-dim); font-size:0.85rem;">No rectifying barrier is formed with this pairing.</span>`;
+      typeLabel = 'Ohmic (no barrier)';
+    } else {
+      let stateLabel = 'Equilibrium';
+      if (biasState === 'forward') stateLabel = `Forward bias (${V_app.toFixed(2)} V)`;
+      if (biasState === 'reverse') stateLabel = `Reverse bias (${Math.abs(V_app).toFixed(2)} V)`;
+      el.contactStatus.innerHTML = `<span style="color: var(--warning); font-weight:700; font-size:1.05rem;">Rectifying Contact — ${stateLabel}</span><br><span style="color: var(--text-dim); font-size:0.85rem;">Depletion width and band bending updated.</span>`;
+      typeLabel = 'Rectifying (Schottky)';
+    }
+
+    // === Readout strip ===
+    el.roType.textContent = typeLabel;
+    el.roType.className = 'readout-value' + (isIsolated ? '' : (isOhmic ? ' ohmic' : ' warn'));
+    el.roPhibLabel.textContent = `Barrier height φ_B${isNType ? '0' : 'p'}`;
+    el.roPhib.textContent = `${isOhmic ? '0.00' : Math.abs(phi_b).toFixed(2)} eV`;
+    el.roVbi.textContent = `${V_bi.toFixed(2)} V`;
+    el.roVbi.className = 'readout-value' + (isIsolated ? '' : (isOhmic ? ' ohmic' : ' warn'));
+    el.roVapp.textContent = isIsolated ? '—' : `${V_app.toFixed(2)} V`;
+  }
+
+  [el.metalSelect, el.semiSelect, el.dopingSelect, el.biasSelect].forEach(s => s.addEventListener('change', updateDiagram));
+  updateDiagram();
+})();
+</script>
 </body>
 </html>

@@ -1,163 +1,259 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Semiconductor Physics and Devices(EEE-369)</title>
-    <style>
-        :root {
-            --bg: #f8fafc;
-            --panel: #ffffff;
-            --text: #1e293b;
-            --text-light: #64748b;
-            --primary: #0288d1; 
-            --primary-hover: #0277bd;
-            --border: #cbd5e1;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Semiconductor Physics and Devices · EEE-369</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0d1117;
+    --bg-grid: #141b24;
+    --panel: #151c26;
+    --panel-2: #10151d;
+    --hairline: #263041;
+    --hairline-soft: #1c2532;
+    --text-main: #dbe4ee;
+    --text-dim: #7c8ba1;
+    --text-faint: #4b5a70;
+    --amber: #ffb454;
+    --phys: #4ea1ff;
+    --success: #34d399;
+    --warning: #ff6b6b;
+    --radius: 10px;
+    --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  }
 
-        body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 40px 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            box-sizing: border-box;
-        }
+  *{ box-sizing:border-box; }
 
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
+  body{
+    margin:0;
+    padding: 30px 16px 50px;
+    background:
+      radial-gradient(circle at 88% 0%, rgba(255,107,107,0.05), transparent 40%),
+      radial-gradient(circle at 6% 90%, rgba(78,161,255,0.05), transparent 40%),
+      linear-gradient(var(--bg-grid) 1px, transparent 1px) 0 0/100% 34px,
+      var(--bg);
+    color: var(--text-main);
+    font-family: var(--sans);
+    display:flex; flex-direction:column; align-items:center;
+    min-height:100vh;
+  }
 
-        .header h1 {
-            margin: 0 0 10px 0;
-            font-size: 2.5rem;
-            color: #0f172a;
-        }
+  .frame{ width:100%; max-width: 1040px; }
 
-        .header p {
-            margin: 0;
-            font-size: 1.1rem;
-            color: var(--text-light);
-            max-width: 600px;
-        }
+  /* ---------- header ---------- */
+  .hdr{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    flex-wrap:wrap; gap:10px; margin-bottom:18px;
+    border-bottom:1px solid var(--hairline); padding-bottom:16px;
+  }
+  .hdr-eyebrow{
+    font-family: var(--mono); font-size:0.72rem; letter-spacing:0.14em;
+    text-transform:uppercase; color: var(--amber); margin:0 0 6px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .hdr-eyebrow .dot{
+    width:6px; height:6px; border-radius:50%; background: var(--success);
+    box-shadow: 0 0 8px rgba(52,211,153,0.7); flex:none;
+  }
+  h1{ margin:0; font-size:1.6rem; font-weight:700; letter-spacing:-0.01em; color:#f1f5f9; }
+  .hdr-sub{
+    font-family: var(--mono); font-size:0.78rem; color: var(--text-dim);
+    max-width: 400px; text-align:right; line-height:1.55;
+  }
+  @media (max-width:640px){ .hdr-sub{ text-align:left; } }
 
-        .grid-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 25px;
-            max-width: 1000px;
-            width: 100%;
-        }
+  /* ---------- readout strip ---------- */
+  .readout{
+    display:grid; grid-template-columns: repeat(3,1fr); gap:1px;
+    background: var(--hairline); border:1px solid var(--hairline);
+    border-radius: var(--radius); overflow:hidden; margin-bottom:26px;
+  }
+  .readout-cell{ background: var(--panel-2); padding:13px 16px; min-width:0; }
+  .readout-label{
+    font-family: var(--mono); font-size:0.62rem; letter-spacing:0.08em;
+    text-transform:uppercase; color: var(--text-dim); margin-bottom:6px;
+  }
+  .readout-value{
+    font-family: var(--mono); font-size:1rem; font-weight:600;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    color: var(--text-main);
+  }
+  @media (max-width:640px){ .readout{ grid-template-columns: 1fr; } }
 
-        .card {
-            background-color: var(--panel);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 25px;
-            text-decoration: none;
-            color: inherit;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-            display: flex;
-            flex-direction: column;
-        }
+  /* ---------- module grid ---------- */
+  .grid-container{
+    display:grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+    gap:18px; margin-bottom: 30px;
+  }
 
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            border-color: var(--primary);
-        }
+  .card{
+    position:relative;
+    background: var(--panel);
+    border:1px solid var(--hairline);
+    border-left: 3px solid var(--accent, var(--phys));
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding:22px 22px 20px;
+    text-decoration:none; color:inherit;
+    display:flex; flex-direction:column;
+    transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+  }
+  .card:hover{
+    transform: translateY(-4px);
+    box-shadow: 0 16px 30px -14px rgba(0,0,0,0.65);
+    background: #171f2b;
+  }
+  .card:focus-visible{
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(255,180,84,0.25);
+  }
 
-        .card-icon {
-            font-size: 2.5rem;
-            margin-bottom: 15px;
-        }
+  .card-top{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; }
+  .card-eyebrow{
+    font-family: var(--mono); font-size:0.66rem; letter-spacing:0.1em;
+    text-transform:uppercase; color: var(--accent, var(--phys));
+  }
+  .card-index{
+    font-family: var(--mono); font-size:0.66rem; color: var(--text-faint);
+  }
 
-        .card-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            margin: 0 0 10px 0;
-            color: var(--primary);
-        }
+  .card-icon{ margin: 4px 0 16px; }
+  .card-icon svg{ display:block; width:100%; height:auto; max-width:150px; }
 
-        .card-desc {
-            font-size: 0.95rem;
-            color: var(--text-light);
-            line-height: 1.5;
-            margin: 0;
-            flex-grow: 1;
-        }
-        
-        .card-action {
-            margin-top: 20px;
-            font-weight: 600;
-            color: var(--primary);
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        .card:hover .card-action {
-            color: var(--primary-hover);
-        }
+  .card-title{
+    font-size:1.12rem; font-weight:700; margin:0 0 8px;
+    color: var(--text-main); letter-spacing:-0.005em;
+  }
+  .card-desc{
+    font-family: var(--mono); font-size:0.82rem; color: var(--text-dim);
+    line-height:1.6; margin:0; flex-grow:1;
+  }
+  .card-desc b{ color: var(--text-main); font-weight:600; }
 
-        .footer {
-            margin-top: auto;
-            padding-top: 40px;
-            text-align: center;
-            color: var(--text-light);
-            font-size: 0.9rem;
-        }
+  .card-action{
+    margin-top:18px; padding-top:14px; border-top:1px solid var(--hairline-soft);
+    font-family: var(--mono); font-size:0.76rem; font-weight:600;
+    color: var(--accent, var(--phys));
+    display:flex; align-items:center; justify-content:space-between;
+    letter-spacing:0.02em;
+  }
+  .card-action .arrow{ transition: transform .2s ease; }
+  .card:hover .card-action .arrow{ transform: translateX(4px); }
 
-        .footer strong {
-            color: var(--text);
-        }
-    </style>
+  /* ---------- theory / index note ---------- */
+  .note{
+    background: var(--panel); border:1px solid var(--hairline); border-radius: var(--radius);
+    padding:16px 20px; margin-bottom:26px;
+    font-family: var(--mono); font-size:0.8rem; line-height:1.7; color: var(--text-dim);
+  }
+  .note b{ color: var(--text-main); }
+  .note code{ font-family: var(--mono); background: var(--panel-2); padding:1px 5px; border-radius:4px; color: var(--text-main); }
+
+  footer{
+    text-align:center; margin-top:8px; font-family: var(--mono);
+    font-size:0.72rem; color: var(--text-faint); letter-spacing:0.04em; line-height:1.8;
+  }
+  footer .powered{ opacity:0.6; font-size:0.68rem; }
+</style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>Semiconductor Physics and Devices(EEE-369)</h1>
-        <p>Interactive energy band diagram simulators for exploring heterojunctions & metal-semiconductor contacts.</p>
+<div class="frame">
+
+  <div class="hdr">
+    <div>
+      <p class="hdr-eyebrow"><span class="dot"></span>EEE-369 · Interactive Lab</p>
+      <h1>Semiconductor Physics and Devices</h1>
     </div>
+    <p class="hdr-sub">Energy-band simulators for junctions between dissimilar materials — heterojunctions, rectifying, and ohmic metal contacts.</p>
+  </div>
 
-    <div class="grid-container">
-        
-        <!-- Heterojunction Simulator Link -->
-        <a href="heterojunction_simulator.html" class="card">
-            <div class="card-icon">📊</div>
-            <h2 class="card-title">Heterojunction Simulator</h2>
-            <p class="card-desc">Visualize abrupt Al₀.₃Ga₀.₇As–GaAs heterojunctions. Explore band bending, spike/notch formations, and 2DEG accumulation layers across various doping profiles.</p>
-            <div class="card-action">Open Simulator →</div>
-        </a>
-
-        <!-- Schottky Diode Link -->
-        <a href="schottky_diode_simulator.html" class="card">
-            <div class="card-icon">⚡</div>
-            <h2 class="card-title">Schottky Diode Simulator</h2>
-            <p class="card-desc">Analyze rectifying metal-semiconductor contacts. Adjust metal work functions & semiconductor doping to observe barrier heights (Φ<sub>B0</sub>), built-in potentials, and bias effects.</p>
-            <div class="card-action">Open Simulator →</div>
-        </a>
-
-        <!-- Ohmic Contact Link -->
-        <a href="ohmic_contact_simulator.html" class="card">
-            <div class="card-icon">🔌</div>
-            <h2 class="card-title">Ohmic Contact Simulator</h2>
-            <p class="card-desc">Simulate non-rectifying contacts. Visualize ideal accumulation layers & degenerate ultra-thin tunneling barriers used for low-resistance connections.</p>
-            <div class="card-action">Open Simulator →</div>
-        </a>
-
+  <div class="readout">
+    <div class="readout-cell">
+      <div class="readout-label">Modules</div>
+      <div class="readout-value">03 interactive simulators</div>
     </div>
-
-    <div class="footer">
-        Created by <strong>Mahmudul Hasan(2202156)</strong><br>
-        <span style="font-size: 0.8rem; margin-top: 5px; display: block; opacity: 0.7;">Powered by Gemini</span>
+    <div class="readout-cell">
+      <div class="readout-label">Renders</div>
+      <div class="readout-value">Live SVG band diagrams</div>
     </div>
+    <div class="readout-cell">
+      <div class="readout-label">Parameters</div>
+      <div class="readout-value">Material · doping · bias</div>
+    </div>
+  </div>
+
+  <div class="grid-container">
+
+    <!-- Heterojunction Simulator -->
+    <a href="heterojunction_simulator.html" class="card" style="--accent: var(--phys);">
+      <div class="card-top">
+        <span class="card-eyebrow">Module 01 · Heterojunction</span>
+        <span class="card-index">AlGaAs / GaAs</span>
+      </div>
+      <div class="card-icon">
+        <svg viewBox="0 0 150 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6,44 L60,44 L60,44 C64,44 64,16 70,16 L70,30 C70,38 74,38 78,38 L144,38" stroke="var(--phys)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="70" y1="8" x2="70" y2="52" stroke="var(--hairline)" stroke-width="1" stroke-dasharray="3 3"/>
+          <line x1="6" y1="30" x2="144" y2="26" stroke="var(--phys)" stroke-width="1.5" stroke-dasharray="8 4" opacity="0.55"/>
+        </svg>
+      </div>
+      <h2 class="card-title">Heterojunction Simulator</h2>
+      <p class="card-desc">Abrupt Al<sub>0.3</sub>Ga<sub>0.7</sub>As–GaAs junctions. Sweep doping to watch the conduction-band <b>spike and notch</b> form, and see where a 2DEG accumulates.</p>
+      <div class="card-action">Open simulator <span class="arrow">→</span></div>
+    </a>
+
+    <!-- Schottky Diode Simulator -->
+    <a href="schottky_diode_simulator.html" class="card" style="--accent: var(--warning);">
+      <div class="card-top">
+        <span class="card-eyebrow">Module 02 · Rectifying contact</span>
+        <span class="card-index">Metal / n,p-Si</span>
+      </div>
+      <div class="card-icon">
+        <svg viewBox="0 0 150 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6,20 L70,20 C86,20 86,44 108,44 L144,44" stroke="var(--warning)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="70" y1="8" x2="70" y2="52" stroke="var(--hairline)" stroke-width="1" stroke-dasharray="3 3"/>
+          <line x1="6" y1="20" x2="70" y2="20" stroke="var(--warning)" stroke-width="1.5" stroke-dasharray="7 4" opacity="0.5" transform="translate(0,-8)"/>
+        </svg>
+      </div>
+      <h2 class="card-title">Schottky Diode Simulator</h2>
+      <p class="card-desc">Pick a metal and a doped semiconductor to compute the <b>barrier height Φ<sub>B0</sub></b> and built-in potential, then apply forward or reverse bias to watch the depletion width respond.</p>
+      <div class="card-action">Open simulator <span class="arrow">→</span></div>
+    </a>
+
+    <!-- Ohmic Contact Simulator -->
+    <a href="ohmic_contact_simulator.html" class="card" style="--accent: var(--success);">
+      <div class="card-top">
+        <span class="card-eyebrow">Module 03 · Non-rectifying contact</span>
+        <span class="card-index">Metal / n⁺,p⁺-Si</span>
+      </div>
+      <div class="card-icon">
+        <svg viewBox="0 0 150 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6,44 L70,44 C82,44 82,14 92,14 L144,14" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="70" y1="4" x2="70" y2="52" stroke="var(--hairline)" stroke-width="1" stroke-dasharray="3 3"/>
+          <path d="M70,44 C78,44 80,30 92,26" stroke="var(--success)" stroke-width="1.5" stroke-dasharray="2 3" opacity="0.6"/>
+        </svg>
+      </div>
+      <h2 class="card-title">Ohmic Contact Simulator</h2>
+      <p class="card-desc">Degenerately doped junctions where carriers <b>tunnel through</b> an ultra-thin barrier instead of climbing it. Compare ideal accumulation layers against realistic tunneling contacts.</p>
+      <div class="card-action">Open simulator <span class="arrow">→</span></div>
+    </a>
+
+  </div>
+
+  <div class="note">
+    <b>How the three relate:</b> all three tools plot the same quantity — <code>E_c(x)</code> and <code>E_v(x)</code> across a junction — but for a different pairing: two semiconductors with different band gaps (heterojunction), a metal and a lightly doped semiconductor that rectifies (Schottky), and a metal and a heavily doped semiconductor that doesn't (ohmic).
+  </div>
+
+  <footer>
+    Created by <span style="color:var(--text-main); font-weight:600;">Mahmudul Hasan</span> · 2202156
+    <br><span class="powered">Powered by Gemini</span>
+  </footer>
+
+</div>
 
 </body>
 </html>
